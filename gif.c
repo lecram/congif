@@ -1,0 +1,218 @@
+/*
+gcc -Wall -Wextra -std=c99 -O0 -g -fsanitize=address -fno-omit-frame-pointer -c gif.c
+gcc -Wall -Wextra -std=c99 -O2 -c gif.c
+gcc -shared -o libgif.so gif.o
+*/
+
+/* NOTES
+   - The encoder dumps uint16_t numbers as is into GIF files, which means it
+     only works on little-endian machines, since this is what GIF requires.
+   - The encoder is very limited:
+     * the global palette size is fixed in 16 colors;
+     * there's no way to add local palettes;
+     * the only GIF89a extension implemented is GCE (to set delay times).
+   - The compressor only sends the clear code once per image, as the first
+     code (no adaptive compression technique is employed). This is suboptimal
+     for large and complex images.
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include "gif.h"
+
+struct Node {
+    uint16_t key;
+    struct Node *children[0x10];
+};
+typedef struct Node Node;
+
+static Node *
+new_node(uint16_t key)
+{
+    Node *node = calloc(1, sizeof(*node));
+    if (node)
+        node->key = key;
+    return node;
+}
+
+static void
+del_trie(Node *root)
+{
+    if (!root)
+        return;
+    for (int i = 0; i < 0x10; i++)
+        del_trie(root->children[i]);
+    free(root);
+}
+
+GIF *
+new_gif(const char *fname, uint16_t w, uint16_t h, uint8_t *gct)
+{
+    GIF *gif = calloc(1, sizeof(*gif) + 2*w*h);
+    gif->w = w; gif->h = h;
+    gif->cur = (uint8_t *) &gif[1];
+    gif->old = &gif->cur[w*h];
+    /* fill back-buffer with invalid pixels to force overwrite */
+    memset(gif->old, 0x10, w*h);
+    gif->fd = creat(fname, 0666);
+    if (gif->fd == -1)
+        return NULL;
+    write(gif->fd, "GIF89a", 6);
+    write(gif->fd, &w, 2);
+    write(gif->fd, &h, 2);
+    write(gif->fd, (uint8_t []) {0xF3, 0x00, 0x00}, 3);
+    write(gif->fd, gct, 0x30);
+    return gif;
+}
+
+/* Add packed key to buffer, updating offset and partial.
+ *   gif->offset holds position to put next *bit*
+ *   gif->partial holds bits to include in next byte */
+static void
+put_key(GIF *gif, uint16_t key, int key_size)
+{
+    int byte_offset, bit_offset, bits_to_write;
+    byte_offset = gif->offset / 8;
+    bit_offset = gif->offset % 8;
+    gif->partial |= ((uint32_t) key) << bit_offset;
+    bits_to_write = bit_offset + key_size;
+    while (bits_to_write >= 8) {
+        gif->buffer[byte_offset++] = gif->partial & 0xFF;
+        if (byte_offset == 0xFF) {
+            write(gif->fd, "\xFF", 1);
+            write(gif->fd, gif->buffer, 0xFF);
+            byte_offset = 0;
+        }
+        gif->partial >>= 8;
+        bits_to_write -= 8;
+    }
+    gif->offset = (gif->offset + key_size) % (0xFF * 8);
+}
+
+static void
+end_key(GIF *gif)
+{
+    int byte_offset;
+    byte_offset = gif->offset / 8;
+    gif->buffer[byte_offset++] = gif->partial & 0xFF;
+    write(gif->fd, (uint8_t []) {byte_offset}, 1);
+    write(gif->fd, gif->buffer, byte_offset);
+    write(gif->fd, "\0", 1);
+    gif->offset = gif->partial = 0;
+}
+
+static void
+put_image(GIF *gif, uint16_t w, uint16_t h, uint16_t x, uint16_t y)
+{
+    int nkeys, key_size, i, j;
+    Node *node, *child, *root;
+
+    root = malloc(sizeof(*root));
+    write(gif->fd, ",", 1);
+    write(gif->fd, &x, 2);
+    write(gif->fd, &y, 2);
+    write(gif->fd, &w, 2);
+    write(gif->fd, &h, 2);
+    write(gif->fd, (uint8_t []) {0x00, 0x04}, 2);
+    /* Create nodes for single pixels. */
+    for (nkeys = 0; nkeys < 0x10; nkeys++)
+        root->children[nkeys] = new_node(nkeys);
+    node = root;
+    key_size = 5;
+    nkeys += 2; /* skip clear code and stop code */
+    put_key(gif, 0x10, key_size); /* clear code */
+    for (i = y; i < y+h; i++) {
+        for (j = x; j < x+w; j++) {
+#ifdef CROP
+            uint8_t pixel = 2;
+#else
+            uint8_t pixel = gif->cur[i*gif->w+j];
+#endif
+            child = node->children[pixel];
+            if (child) {
+                node = child;
+            } else {
+                put_key(gif, node->key, key_size);
+                if (nkeys < 0x1000) {
+                    if (nkeys == (1 << key_size))
+                        key_size++;
+                    node->children[pixel] = new_node(nkeys++);
+                }
+                node = root->children[pixel];
+            }
+        }
+    }
+    put_key(gif, node->key, key_size);
+    put_key(gif, 0x11, key_size); /* stop code */
+    end_key(gif);
+    del_trie(root);
+}
+
+static void
+get_bbox(GIF *gif, uint16_t *w, uint16_t *h, uint16_t *x, uint16_t *y)
+{
+    int i, j, k;
+    int left, right, top, bottom;
+    left = gif->w; right = 0;
+    top = gif->h; bottom = 0;
+    k = 0;
+    for (i = 0; i < gif->h; i++) {
+        for (j = 0; j < gif->w; j++, k++) {
+            if (gif->cur[k] != gif->old[k]) {
+                if (j < left)   left    = j;
+                if (j > right)  right   = j;
+                if (i < top)    top     = i;
+                if (i > bottom) bottom  = i;
+            }
+        }
+    }
+    *x = left; *y = top;
+    *w = right - left + 1;
+    *h = bottom - top + 1;
+}
+
+static void
+set_delay(GIF *gif, uint16_t d)
+{
+#ifdef CROP
+    write(gif->fd, (uint8_t []) {'!', 0xF9, 0x04, 0x08}, 4);
+#else
+    write(gif->fd, (uint8_t []) {'!', 0xF9, 0x04, 0x04}, 4);
+#endif
+    write(gif->fd, &d, 2);
+    write(gif->fd, "\0\0", 2);
+}
+
+void
+add_frame(GIF *gif, uint16_t d)
+{
+    uint16_t w, h, x, y;
+    uint8_t *tmp;
+
+    if (d)
+        set_delay(gif, d);
+    get_bbox(gif, &w, &h, &x, &y);
+    if (x == gif->w || y == gif->h) {
+        /* image haven't changed; save one pixel just to add delay */
+        w = h = 1;
+        x = y = 0;
+    }
+    put_image(gif, w, h, x, y);
+    tmp = gif->old;
+    gif->old = gif->cur;
+    gif->cur = tmp;
+}
+
+void
+close_gif(GIF* gif)
+{
+    write(gif->fd, ";", 1);
+    close(gif->fd);
+    free(gif);
+}
