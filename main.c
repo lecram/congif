@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
+#include <termios.h>
 
 #include "term.h"
 #include "mbf.h"
@@ -230,8 +232,11 @@ main(int argc, char *argv[])
     int c;
     int ret;
     Term *term;
+    struct winsize size;
 
-    w = 80; h = 30;
+    ioctl(0, TIOCGWINSZ, &size);
+    h = size.ws_row;
+    w = size.ws_col;
     f = "uw-ttyp0-11.mbf";
     o = "con.gif";
     d = 1.0; m = FLT_MAX;
