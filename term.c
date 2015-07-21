@@ -8,7 +8,6 @@
 #include "cs_vtg.h"
 #include "cs_437.h"
 
-#define MIN(A, B)   ((A) < (B) ? (A) : (B))
 #define MAX(A, B)   ((A) > (B) ? (A) : (B))
 
 void

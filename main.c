@@ -10,7 +10,6 @@
 #include <fcntl.h>
 
 #include "term.h"
-//#include "dump.h"
 #include "mbf.h"
 #include "gif.h"
 

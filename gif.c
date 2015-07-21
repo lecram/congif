@@ -1,19 +1,6 @@
-/*
-gcc -Wall -Wextra -std=c99 -O0 -g -fsanitize=address -fno-omit-frame-pointer -c gif.c
-gcc -Wall -Wextra -std=c99 -O2 -c gif.c
-gcc -shared -o libgif.so gif.o
-*/
-
 /* NOTES
    - The encoder dumps uint16_t numbers as is into GIF files, which means it
      only works on little-endian machines, since this is what GIF requires.
-   - The encoder is very limited:
-     * the global palette size is fixed in 16 colors;
-     * there's no way to add local palettes;
-     * the only GIF89a extension implemented is GCE (to set delay times).
-   - The compressor only sends the clear code once per image, as the first
-     code (no adaptive compression technique is employed). This is suboptimal
-     for large and complex images.
 */
 
 #include <stdio.h>
