@@ -174,24 +174,28 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     rewind(ft);
     /* discard first line of dialogue */
     do read(fd, &ch, 1); while (ch != '\n');
-    pb[0] = '[';
-    pb[pbcols-1] = ']';
-    pb[pbcols] = '\0';
-    for (i = 1; i < pbcols-1; i++)
-        pb[i] = '-';
+    if (pbcols) {
+        pb[0] = '[';
+        pb[pbcols-1] = ']';
+        pb[pbcols] = '\0';
+        for (i = 1; i < pbcols-1; i++)
+            pb[i] = '-';
+        lastdone = 0;
+        printf("%s\r[", pb);
+    }
     i = 0;
     d = 0;
-    lastdone = 0;
-    printf("%s\r[", pb);
     while (fscanf(ft, "%f %d\n", &t, &n) == 2) {
         d += ((t > max ? max : t) * 100.0 / div);
-        done = i * (pbcols-1) / c;
-        if (done > lastdone) {
-            while (done > lastdone) {
-                putchar('#');
-                lastdone++;
+        if (pbcols) {
+            done = i * (pbcols-1) / c;
+            if (done > lastdone) {
+                while (done > lastdone) {
+                    putchar('#');
+                    lastdone++;
+                }
+                fflush(stdout);
             }
-            fflush(stdout);
         }
         if (i && d > 5) {
             render(term, font, gif, (uint16_t) (d + 0.5));
@@ -233,7 +237,8 @@ help(char *name)
         "  -d divisor   Speedup, as in scriptreplay(1)\n"
         "  -m maxdelay  Maximum delay, as in scriptreplay(1)\n"
         "  -c on|off    Show/hide cursor\n"
-        "  -v           Verbose mode\n"
+        "  -v           Verbose mode (show parser logs)\n"
+        "  -q           Quiet mode (don't show progress bar)\n"
     , name);
 }
 
@@ -248,6 +253,7 @@ main(int argc, char *argv[])
     char *t;
     char *s;
     int c;
+    int q;
     int ret;
     Term *term;
     struct winsize size;
@@ -259,7 +265,8 @@ main(int argc, char *argv[])
     o = "con.gif";
     d = 1.0; m = FLT_MAX;
     c = 1;
-    while ((opt = getopt(argc, argv, "w:h:f:o:d:m:c:v")) != -1) {
+    q = 0;
+    while ((opt = getopt(argc, argv, "w:h:f:o:d:m:c:vq")) != -1) {
         switch (opt) {
         case 'w':
             w = atoi(optarg);
@@ -288,6 +295,9 @@ main(int argc, char *argv[])
         case 'v':
             set_verbosity(1);
             break;
+        case 'q':
+            q = 1;
+            break;
         default:
             help(argv[0]);
             return 1;
@@ -301,7 +311,7 @@ main(int argc, char *argv[])
     t = argv[optind++];
     s = argv[optind++];
     term = new_term(h, w);
-    ret = convert_script(term, t, s, f, o, d, m, c, size.ws_col-1);
+    ret = convert_script(term, t, s, f, o, d, m, c, q ? 0 : size.ws_col-1);
     free(term);
     return ret;
 }
