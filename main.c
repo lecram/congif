@@ -161,8 +161,11 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     i = 0;
     while (fscanf(ft, "%f %d\n", &t, &n) == 2) {
         d = (uint16_t) ((t > max ? max : t)  * 100.0 / div);
-        if (i)
+        if (i) {
+            printf("\r#%d", i);
+            fflush(stdout);
             render(term, font, gif, d);
+        }
         while (n--) {
             read(fd, &ch, 1);
             parse(term, ch);
@@ -171,6 +174,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
             term->mode &= ~M_CURSORVIS;
         i++;
     }
+    printf("\r#%d\n", i);
     render(term, font, gif, 0);
     close_gif(gif);
 no_gif:
