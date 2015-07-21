@@ -74,5 +74,6 @@ typedef struct Term {
     uint8_t plt[0x30];
 } Term;
 
+void set_verbosity(int level);
 Term *new_term(int rows, int cols);
 void parse(Term *term, uint8_t byte);

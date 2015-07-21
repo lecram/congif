@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "term.h"
 #include "default.h"
@@ -9,6 +10,24 @@
 #include "cs_437.h"
 
 #define MAX(A, B)   ((A) > (B) ? (A) : (B))
+
+static int verbose = 0;
+
+static void
+logfmt(char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    if (verbose)
+        vfprintf(stderr, fmt, args);
+    va_end(args);
+}
+
+void
+set_verbosity(int level)
+{
+    verbose = level;
+}
 
 static void
 save_cursor(Term *term)
@@ -108,9 +127,9 @@ static int
 within_bounds(Term *term, int row, int col)
 {
     if (row < 0 || row >= term->rows || col < 0 || col >= term->cols) {
-        fprintf(stderr, "error: cursor out of bounds, check terminal size\n");
-        fprintf(stderr, "  position:   (%3d, %3d)\n", row+1, col+1);
-        fprintf(stderr, "  dimensions: (%3d, %3d)\n", term->rows, term->cols);
+        logfmt("error: cursor out of bounds, check terminal size\n");
+        logfmt("  position:   (%3d, %3d)\n", row+1, col+1);
+        logfmt("  dimensions: (%3d, %3d)\n", term->rows, term->cols);
         return 0;
     } else {
         return 1;
@@ -203,7 +222,7 @@ ctrlchar(Term *term, uint8_t byte)
         break;
     case 0x09:
         /* TODO: go to next tab stop or end of line */
-        fprintf(stderr, "NYI: Control Character 0x09 (TAB)\n");
+        logfmt("NYI: Control Character 0x09 (TAB)\n");
         break;
     case 0x0A: case 0x0B: case 0x0C:
         linefeed(term);
@@ -252,7 +271,7 @@ escseq(Term *term, uint8_t byte)
         break;
     case 'H':
         /* TODO: set tab stop at current column */
-        fprintf(stderr, "NYI: ESC Sequence H (HTS)\n");
+        logfmt("NYI: ESC Sequence H (HTS)\n");
         break;
     case 'M':
         if (term->row == term->top)
@@ -262,7 +281,7 @@ escseq(Term *term, uint8_t byte)
         break;
     case 'Z':
         /* TODO: DEC private identification */
-        fprintf(stderr, "NYI: ESC Sequence Z (DECID)\n");
+        logfmt("NYI: ESC Sequence Z (DECID)\n");
         break;
     case '7':
         save_misc(term);
@@ -272,11 +291,11 @@ escseq(Term *term, uint8_t byte)
         break;
     case '%':
         /* TODO: select charset */
-        fprintf(stderr, "NYI: ESC Sequence %% (character set selection)\n");
+        logfmt("NYI: ESC Sequence %% (character set selection)\n");
         break;
     case '#':
         /* TODO: DEC screen alignment test */
-        fprintf(stderr, "NYI: ESC Sequence # (DECALN)\n");
+        logfmt("NYI: ESC Sequence # (DECALN)\n");
         break;
     case '(':
         switch (second) {
@@ -290,7 +309,7 @@ escseq(Term *term, uint8_t byte)
             term->cs_array[0] = CS_437;
             break;
         case 'K':
-            fprintf(stderr, "UNS: user-defined mapping\n");
+            logfmt("UNS: user-defined mapping\n");
         }
         break;
     case ')':
@@ -305,19 +324,19 @@ escseq(Term *term, uint8_t byte)
             term->cs_array[1] = CS_437;
             break;
         case 'K':
-            fprintf(stderr, "UNS: user-defined mapping\n");
+            logfmt("UNS: user-defined mapping\n");
         }
         break;
     case '>':
         /* TODO: set numeric keypad mode */
-        fprintf(stderr, "NYI: ESC Sequence > (DECPNM)\n");
+        logfmt("NYI: ESC Sequence > (DECPNM)\n");
         break;
     case '=':
         /* TODO: set application keypad mode */
-        fprintf(stderr, "NYI: ESC Sequence = (DECPAM)\n");
+        logfmt("NYI: ESC Sequence = (DECPAM)\n");
         break;
     default:
-        fprintf(stderr, "UNS: ESC Sequence %c\n", first);
+        logfmt("UNS: ESC Sequence %c\n", first);
     }
 }
 
@@ -354,7 +373,7 @@ modeswitch(Term *term, int private, int number, int value)
             break;
         case 3:
             /* TODO: 80/132 columns mode switch */
-            fprintf(stderr, "NYI: DEC mode 3\n");
+            logfmt("NYI: DEC mode 3\n");
             break;
         case 5:
             SWITCH(term, M_REVERSE, value);
@@ -380,7 +399,7 @@ modeswitch(Term *term, int private, int number, int value)
             SWITCH(term, M_MOUSEX11, value);
             break;
         default:
-            fprintf(stderr, "UNS: DEC mode %d\n", number);
+            logfmt("UNS: DEC mode %d\n", number);
         }
     } else {
         /* ANSI modes */
@@ -395,7 +414,7 @@ modeswitch(Term *term, int private, int number, int value)
             SWITCH(term, M_NEWLINE, value);
             break;
         default:
-            fprintf(stderr, "UNS: ANSI mode %d\n", number);
+            logfmt("UNS: ANSI mode %d\n", number);
         }
     }
 }
@@ -471,7 +490,7 @@ sgr(Term *term, int number)
         term->pair = (term->pair & 0xF0) | DEF_BACK;
         break;
     default:
-        fprintf(stderr, "UNS: SGR %d\n", number);
+        logfmt("UNS: SGR %d\n", number);
     }
 }
 
@@ -502,7 +521,7 @@ ctrlseq(Term *term, uint8_t byte)
     switch (byte) {
     case '@':
         /* TODO: insert the indicated # of blank characters */
-        fprintf(stderr, "BYI: Control Sequence @ (ICH)\n");
+        logfmt("BYI: Control Sequence @ (ICH)\n");
         break;
     case 'A':
         term->row -= k1;
@@ -611,14 +630,14 @@ ctrlseq(Term *term, uint8_t byte)
         break;
     case 'c':
         /* TODO: answer ESC [ ? 6 c */
-        fprintf(stderr, "NYI: Control Sequence c (DA)\n");
+        logfmt("NYI: Control Sequence c (DA)\n");
         break;
     case 'd':
         term->row = k1 - 1;
         break;
     case 'g':
         /* TODO: clear tab stop */
-        fprintf(stderr, "NYI: Control Sequence g (TBC)\n");
+        logfmt("NYI: Control Sequence g (TBC)\n");
         break;
     case 'h':
         for (i = 0; i < n; i++)
@@ -634,11 +653,11 @@ ctrlseq(Term *term, uint8_t byte)
         break;
     case 'n':
         /* TODO: status report */
-        fprintf(stderr, "NYI: Control Sequence n (DSR)\n");
+        logfmt("NYI: Control Sequence n (DSR)\n");
         break;
     case 'q':
         /* TODO: set keyboard LEDs */
-        fprintf(stderr, "NYI: Control Sequence q (DECLL)\n");
+        logfmt("NYI: Control Sequence q (DECLL)\n");
         break;
     case 'r':
         if (n == 2) {
@@ -658,7 +677,7 @@ ctrlseq(Term *term, uint8_t byte)
         load_cursor(term);
         break;
     default:
-        fprintf(stderr, "UNS: Control Sequence %c\n", byte);
+        logfmt("UNS: Control Sequence %c\n", byte);
     }
 }
 
@@ -735,7 +754,7 @@ parse(Term *term, uint8_t byte)
             break;
         case S_OSC:
             /* TODO: set/reset palette entries */
-            fprintf(stderr, "NYI: Operating System Sequence\n");
+            logfmt("NYI: Operating System Sequence\n");
             RESET_STATE(term);
             break;
         case S_UNI:
