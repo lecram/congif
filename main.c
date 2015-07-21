@@ -139,7 +139,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     Font *font;
     int w, h;
     int i;
-    uint16_t d;
+    float d;
     GIF *gif;
 
     ft = fopen(timing, "r");
@@ -167,12 +167,14 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     /* discard first line of dialogue */
     do read(fd, &ch, 1); while (ch != '\n');
     i = 0;
+    d = 0;
     while (fscanf(ft, "%f %d\n", &t, &n) == 2) {
-        d = (uint16_t) ((t > max ? max : t)  * 100.0 / div);
-        if (i) {
+        d += ((t > max ? max : t) * 100.0 / div);
+        if (i && d > 5) {
             printf("\r#%d", i);
             fflush(stdout);
-            render(term, font, gif, d);
+            render(term, font, gif, (uint16_t) d);
+            d = 0;
         }
         while (n--) {
             read(fd, &ch, 1);
