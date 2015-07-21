@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <limits.h>
 #include <float.h>
 #include <string.h>
 #include <unistd.h>
@@ -207,17 +206,17 @@ main(int argc, char *argv[])
 {
     int opt;
     int w, h;
-    char f[PATH_MAX];
-    char o[PATH_MAX];
+    char *f;
+    char *o;
     float d, m;
-    char t[PATH_MAX];
-    char s[PATH_MAX];
+    char *t;
+    char *s;
     int c;
     Term *term;
 
     w = 80; h = 30;
-    strncpy(f, "6x11.mbf", PATH_MAX);
-    strncpy(o, "con.gif", PATH_MAX);
+    f = "6x11.mbf";
+    o = "con.gif";
     d = 1.0; m = FLT_MAX;
     c = 1;
     while ((opt = getopt(argc, argv, "w:h:f:o:d:m:c:")) != -1) {
@@ -229,10 +228,10 @@ main(int argc, char *argv[])
             h = atoi(optarg);
             break;
         case 'f':
-            strncpy(f, optarg, PATH_MAX);
+            f = optarg;
             break;
         case 'o':
-            strncpy(o, optarg, PATH_MAX);
+            o = optarg;
             break;
         case 'd':
             d = atof(optarg);
@@ -256,8 +255,8 @@ main(int argc, char *argv[])
         help(argv[0]);
         return 1;
     }
-    strncpy(t, argv[optind++], PATH_MAX);
-    strncpy(s, argv[optind++], PATH_MAX);
+    t = argv[optind++];
+    s = argv[optind++];
     term = new_term(h, w);
     convert_script(term, t, s, f, o, d, m, c);
     free(term);
