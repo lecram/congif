@@ -10,21 +10,21 @@
 
 #define MAX(A, B)   ((A) > (B) ? (A) : (B))
 
-void
+static void
 save_cursor(Term *term)
 {
     term->save_cursor.row = term->row;
     term->save_cursor.col = term->col;
 }
 
-void
+static void
 load_cursor(Term *term)
 {
     term->row = term->save_cursor.row;
     term->col = term->save_cursor.col;
 }
 
-void
+static void
 save_misc(Term *term)
 {
     term->save_misc.row = term->row;
@@ -37,7 +37,7 @@ save_misc(Term *term)
     term->save_misc.cs_index = term->cs_index;
 }
 
-void
+static void
 load_misc(Term *term)
 {
     term->row = term->save_misc.row;
@@ -53,7 +53,7 @@ load_misc(Term *term)
     term->cs_index = term->save_misc.cs_index;
 }
 
-void
+static void
 reset(Term *term)
 {
     int i, j;
@@ -94,7 +94,7 @@ new_term(int rows, int cols)
     return term;
 }
 
-uint16_t
+static uint16_t
 char_code(Term *term)
 {
     int i;
@@ -105,7 +105,7 @@ char_code(Term *term)
 }
 
 /* Move lines down and put a blank line at the top. */
-void
+static void
 scroll_up(Term *term)
 {
     int row, col;
@@ -120,7 +120,7 @@ scroll_up(Term *term)
 }
 
 /* Move lines up and put a blank line at the bottom. */
-void
+static void
 scroll_down(Term *term)
 {
     int row, col;
@@ -134,7 +134,7 @@ scroll_down(Term *term)
         term->addr[term->bot][col] = BLANK;
 }
 
-void
+static void
 addchar(Term *term, uint16_t code)
 {
     Cell cell = (Cell) {code, term->attr, term->pair};
@@ -160,7 +160,7 @@ addchar(Term *term, uint16_t code)
     }
 }
 
-void
+static void
 linefeed(Term *term)
 {
     if (term->row == term->bot)
@@ -171,7 +171,7 @@ linefeed(Term *term)
         term->col = 0;
 }
 
-void
+static void
 ctrlchar(Term *term, uint8_t byte)
 {
     switch (byte) {
@@ -197,7 +197,7 @@ ctrlchar(Term *term, uint8_t byte)
     }
 }
 
-void
+static void
 escseq(Term *term, uint8_t byte)
 {
     uint8_t first, second;
@@ -298,7 +298,7 @@ escseq(Term *term, uint8_t byte)
     }
 }
 
-int
+static int
 getparams(char *partial, int *params, int n)
 {
     char *next;
@@ -320,7 +320,7 @@ getparams(char *partial, int *params, int n)
 
 #define SWITCH(T, F, V) (T)->mode = (V) ? (T)->mode | (F) : (T)->mode & ~(F)
 
-void
+static void
 modeswitch(Term *term, int private, int number, int value)
 {
     if (private) {
@@ -377,7 +377,7 @@ modeswitch(Term *term, int private, int number, int value)
     }
 }
 
-void
+static void
 sgr(Term *term, int number)
 {
     switch (number) {
@@ -451,7 +451,7 @@ sgr(Term *term, int number)
     }
 }
 
-void
+static void
 ctrlseq(Term *term, uint8_t byte)
 {
     int private;
