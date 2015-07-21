@@ -205,7 +205,6 @@ convert_script(Term *term, const char *timing, const char *dialogue,
             term->mode &= ~M_CURSORVIS;
         i++;
     }
-    //printf("\r%*s\n", pbcols, "");
     render(term, font, gif, 0);
     close_gif(gif);
     return 0;
