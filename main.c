@@ -144,9 +144,6 @@ convert_script(Term *term, const char *timing, const char *dialogue,
         fprintf(stderr, "error: could not create GIF: %s\n", anim);
         goto no_gif;
     }
-    /* get number of chunks */
-    for (c = 0; fscanf(ft, "%f %d\n", &t, &n) == 2; c++);
-    rewind(ft);
     /* discard first line of dialogue */
     do read(fd, &ch, 1); while (ch != '\n');
     if (pbcols) {
@@ -157,6 +154,9 @@ convert_script(Term *term, const char *timing, const char *dialogue,
             pb[i] = '-';
         lastdone = 0;
         printf("%s\r[", pb);
+        /* get number of chunks */
+        for (c = 0; fscanf(ft, "%f %d\n", &t, &n) == 2; c++);
+        rewind(ft);
     }
     i = 0;
     d = 0;
