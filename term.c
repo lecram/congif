@@ -138,6 +138,13 @@ static void
 addchar(Term *term, uint16_t code)
 {
     Cell cell = (Cell) {code, term->attr, term->pair};
+    if (term->row < 0 || term->row >= term->rows ||
+        term->col < 0 || term->col >= term->cols) {
+        fprintf(stderr, "error: cursor out of bounds, check terminal size\n");
+        fprintf(stderr, "  position:   (%3d, %3d)\n", term->row+1, term->col+1);
+        fprintf(stderr, "  dimensions: (%3d, %3d)\n", term->rows, term->cols);
+        return;
+    }
     if (term->mode & M_INSERT) {
         Cell next;
         int col;
@@ -463,6 +470,13 @@ ctrlseq(Term *term, uint8_t byte)
     int i, j;
     Cell cell;
 
+    if (term->row < 0 || term->row >= term->rows ||
+        term->col < 0 || term->col >= term->cols) {
+        fprintf(stderr, "error: cursor out of bounds, check terminal size\n");
+        fprintf(stderr, "  position:   (%3d, %3d)\n", term->row+1, term->col+1);
+        fprintf(stderr, "  dimensions: (%3d, %3d)\n", term->rows, term->cols);
+        return;
+    }
     term->partial[term->parlen] = '\0';
     if (*term->partial == '?') {
         private = 1;
