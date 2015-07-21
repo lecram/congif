@@ -132,7 +132,7 @@ render(Term *term, Font *font, GIF *gif, uint16_t delay)
 int
 convert_script(Term *term, const char *timing, const char *dialogue,
                const char *mbf, const char *anim, float div, float max,
-               int cur)
+               int cur, int pbcols)
 {
     FILE *ft;
     int fd;
@@ -141,8 +141,10 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     uint8_t ch;
     Font *font;
     int w, h;
-    int i;
+    int i, c;
     float d;
+    float lastdone, done;
+    char pb[pbcols+1];
     GIF *gif;
 
     ft = fopen(timing, "r");
@@ -167,15 +169,31 @@ convert_script(Term *term, const char *timing, const char *dialogue,
         fprintf(stderr, "error: could not create GIF: %s\n", anim);
         goto no_gif;
     }
+    /* get number of chunks */
+    for (c = 0; fscanf(ft, "%f %d\n", &t, &n) == 2; c++);
+    rewind(ft);
     /* discard first line of dialogue */
     do read(fd, &ch, 1); while (ch != '\n');
+    pb[0] = '[';
+    pb[pbcols-1] = ']';
+    pb[pbcols] = '\0';
+    for (i = 1; i < pbcols-1; i++)
+        pb[i] = '-';
     i = 0;
     d = 0;
+    lastdone = 0;
+    printf("%s\r[", pb);
     while (fscanf(ft, "%f %d\n", &t, &n) == 2) {
         d += ((t > max ? max : t) * 100.0 / div);
-        if (i && d > 5) {
-            printf("\r#%d", i);
+        done = i * (pbcols-1) / c;
+        if (done > lastdone) {
+            while (done > lastdone) {
+                putchar('#');
+                lastdone++;
+            }
             fflush(stdout);
+        }
+        if (i && d > 5) {
             render(term, font, gif, (uint16_t) (d + 0.5));
             d = 0;
         }
@@ -187,7 +205,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
             term->mode &= ~M_CURSORVIS;
         i++;
     }
-    printf("\r#%d\n", i);
+    //printf("\r%*s\n", pbcols, "");
     render(term, font, gif, 0);
     close_gif(gif);
     return 0;
@@ -284,7 +302,7 @@ main(int argc, char *argv[])
     t = argv[optind++];
     s = argv[optind++];
     term = new_term(h, w);
-    ret = convert_script(term, t, s, f, o, d, m, c);
+    ret = convert_script(term, t, s, f, o, d, m, c, size.ws_col-1);
     free(term);
     return ret;
 }
