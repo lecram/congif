@@ -58,7 +58,7 @@ Fonts
 -----
 
 For  simplicity, congif  uses a  custom font  format, MBF.  The font  UW
-ttyp0, included in this distribution, is used by default.
+ttyp0 [1], included in this distribution, is used by default.
 
 
 Examples
@@ -82,3 +82,8 @@ public domain and provided without warranty of any kind.
 
 The  UW  ttyp0   fonts  are  released  under  the   ttyp0  License.  See
 LICENSE.uw-ttyp0 for details.
+
+Links
+-----
+
+[1] http://people.mpi-inf.mpg.de/~uwe/misc/uw-ttyp0/
