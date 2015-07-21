@@ -173,7 +173,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
         if (i && d > 5) {
             printf("\r#%d", i);
             fflush(stdout);
-            render(term, font, gif, (uint16_t) d);
+            render(term, font, gif, (uint16_t) (d + 0.5));
             d = 0;
         }
         while (n--) {
