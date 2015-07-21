@@ -29,9 +29,3 @@ dump_txt(Term *term, const char *fname)
     }
     close(fd);
 }
-
-void
-dump_ppm(Term *term, const char *fname)
-{
-    uint8_t pix[term->rows*term->cols];
-}
