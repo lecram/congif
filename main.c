@@ -161,9 +161,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     do read(fd, &ch, 1); while (ch != '\n');
     i = 0;
     while (fscanf(ft, "%f %d\n", &t, &n) == 2) {
-        d = (uint16_t) (t * 100.0 / div);
-        if (d > (uint16_t) max)
-            d = (uint16_t) max;
+        d = (uint16_t) ((t > max ? max : t)  * 100.0 / div);
         if (i)
             render(term, font, gif, d);
         while (n--) {
