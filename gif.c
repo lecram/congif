@@ -31,9 +31,11 @@ new_node(uint16_t key)
 static void
 del_trie(Node *root)
 {
+    int i;
+
     if (!root)
         return;
-    for (int i = 0; i < 0x10; i++)
+    for (i = 0; i < 0x10; i++)
         del_trie(root->children[i]);
     free(root);
 }
