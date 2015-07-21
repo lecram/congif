@@ -232,7 +232,7 @@ main(int argc, char *argv[])
     Term *term;
 
     w = 80; h = 30;
-    f = "6x11.mbf";
+    f = "uw-ttyp0-11.mbf";
     o = "con.gif";
     d = 1.0; m = FLT_MAX;
     c = 1;
