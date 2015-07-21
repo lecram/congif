@@ -15,31 +15,6 @@
 #include "mbf.h"
 #include "gif.h"
 
-void
-parse_script(Term *term, const char *timing, const char *dialogue)
-{
-    FILE *ft;
-    int fd;
-    float t;
-    int n;
-    uint8_t ch;
-
-    ft = fopen(timing, "r");
-    fd = open(dialogue, O_RDONLY);
-    if (ft == NULL || fd == -1)
-        return;
-    /* discard first line of dialogue */
-    do read(fd, &ch, 1); while (ch != '\n');
-    while (fscanf(ft, "%f %d\n", &t, &n) == 2) {
-        while (n--) {
-            read(fd, &ch, 1);
-            parse(term, ch);
-        }
-    }
-    close(fd);
-    fclose(ft);
-}
-
 int
 get_index(Font *font, uint16_t code)
 {
