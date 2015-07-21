@@ -104,6 +104,19 @@ char_code(Term *term)
     return code;
 }
 
+static int
+within_bounds(Term *term, int row, int col)
+{
+    if (row < 0 || row >= term->rows || col < 0 || col >= term->cols) {
+        fprintf(stderr, "error: cursor out of bounds, check terminal size\n");
+        fprintf(stderr, "  position:   (%3d, %3d)\n", row+1, col+1);
+        fprintf(stderr, "  dimensions: (%3d, %3d)\n", term->rows, term->cols);
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
 /* Move lines down and put a blank line at the top. */
 static void
 scroll_up(Term *term)
@@ -111,6 +124,10 @@ scroll_up(Term *term)
     int row, col;
     Cell *addr;
 
+    if (!within_bounds(term, term->top, 0))
+        return;
+    if (!within_bounds(term, term->bot, 0))
+        return;
     addr = term->addr[term->bot];
     for (row = term->bot; row > term->top; row--)
         term->addr[row] = term->addr[row-1];
@@ -126,6 +143,10 @@ scroll_down(Term *term)
     int row, col;
     Cell *addr;
 
+    if (!within_bounds(term, term->top, 0))
+        return;
+    if (!within_bounds(term, term->bot, 0))
+        return;
     addr = term->addr[term->top];
     for (row = term->top; row < term->bot; row++)
         term->addr[row] = term->addr[row+1];
@@ -138,13 +159,8 @@ static void
 addchar(Term *term, uint16_t code)
 {
     Cell cell = (Cell) {code, term->attr, term->pair};
-    if (term->row < 0 || term->row >= term->rows ||
-        term->col < 0 || term->col >= term->cols) {
-        fprintf(stderr, "error: cursor out of bounds, check terminal size\n");
-        fprintf(stderr, "  position:   (%3d, %3d)\n", term->row+1, term->col+1);
-        fprintf(stderr, "  dimensions: (%3d, %3d)\n", term->rows, term->cols);
+    if (!within_bounds(term, term->row, term->col))
         return;
-    }
     if (term->mode & M_INSERT) {
         Cell next;
         int col;
@@ -470,13 +486,8 @@ ctrlseq(Term *term, uint8_t byte)
     int i, j;
     Cell cell;
 
-    if (term->row < 0 || term->row >= term->rows ||
-        term->col < 0 || term->col >= term->cols) {
-        fprintf(stderr, "error: cursor out of bounds, check terminal size\n");
-        fprintf(stderr, "  position:   (%3d, %3d)\n", term->row+1, term->col+1);
-        fprintf(stderr, "  dimensions: (%3d, %3d)\n", term->rows, term->cols);
+    if (!within_bounds(term, term->row, term->col))
         return;
-    }
     term->partial[term->parlen] = '\0';
     if (*term->partial == '?') {
         private = 1;
