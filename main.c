@@ -184,6 +184,8 @@ convert_script(Term *term, const char *timing, const char *dialogue,
             term->mode &= ~M_CURSORVIS;
         i++;
     }
+    if (pbcols)
+    	putchar('\n');
     render(term, font, gif, 0);
     close_gif(gif);
     return 0;
