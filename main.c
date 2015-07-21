@@ -126,7 +126,7 @@ render(Term *term, Font *font, GIF *gif, uint16_t delay)
     add_frame(gif, delay);
 }
 
-void
+int
 convert_script(Term *term, const char *timing, const char *dialogue,
                const char *mbf, const char *anim, float div, float max,
                int cur)
@@ -143,19 +143,27 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     GIF *gif;
 
     ft = fopen(timing, "r");
-    if (!ft)
+    if (!ft) {
+        fprintf(stderr, "error: could not load timings: %s\n", timing);
         goto no_ft;
+    }
     fd = open(dialogue, O_RDONLY);
-    if (fd == -1)
+    if (fd == -1) {
+        fprintf(stderr, "error: could not load dialogue: %s\n", dialogue);
         goto no_fd;
+    }
     font = load_font(mbf);
-    if (!font)
+    if (!font) {
+        fprintf(stderr, "error: could not load font: %s\n", mbf);
         goto no_font;
+    }
     w = term->cols * font->header.w;
     h = term->rows * font->header.h;
     gif = new_gif(anim, w, h, term->plt);
-    if (!gif)
+    if (!gif) {
+        fprintf(stderr, "error: could not create GIF: %s\n", anim);
         goto no_gif;
+    }
     /* discard first line of dialogue */
     do read(fd, &ch, 1); while (ch != '\n');
     i = 0;
@@ -177,6 +185,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     printf("\r#%d\n", i);
     render(term, font, gif, 0);
     close_gif(gif);
+    return 0;
 no_gif:
     free(font);
 no_font:
@@ -184,7 +193,7 @@ no_font:
 no_fd:
     fclose(ft);
 no_ft:
-    return;
+    return 1;
 }
 
 void
@@ -216,6 +225,7 @@ main(int argc, char *argv[])
     char *t;
     char *s;
     int c;
+    int ret;
     Term *term;
 
     w = 80; h = 30;
@@ -262,7 +272,7 @@ main(int argc, char *argv[])
     t = argv[optind++];
     s = argv[optind++];
     term = new_term(h, w);
-    convert_script(term, t, s, f, o, d, m, c);
+    ret = convert_script(term, t, s, f, o, d, m, c);
     free(term);
-    return 0;
+    return ret;
 }
