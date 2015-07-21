@@ -383,6 +383,7 @@ sgr(Term *term, int number)
     switch (number) {
     case 0:
         term->attr = def_attr;
+        term->pair = def_pair;
         break;
     case 1:
         term->attr |= A_BOLD;
