@@ -280,8 +280,9 @@ escseq(Term *term, uint8_t byte)
             term->row--;
         break;
     case 'Z':
-        /* TODO: DEC private identification */
-        logfmt("NYI: ESC Sequence Z (DECID)\n");
+        /* Identify Terminal (DECID) */
+        /* if we were a real terminal, we'd reply with "ESC [ ? 6 c" */
+        /* since there is no application listening, we can ignore this */
         break;
     case '7':
         save_misc(term);
@@ -629,8 +630,9 @@ ctrlseq(Term *term, uint8_t byte)
             term->addr[term->row][term->col+j] = BLANK;
         break;
     case 'c':
-        /* TODO: answer ESC [ ? 6 c */
-        logfmt("NYI: Control Sequence c (DA)\n");
+        /* Device Attributes (DA) */
+        /* if we were a real terminal, we'd reply with "ESC [ ? 6 c" */
+        /* since there is no application listening, we can ignore this */
         break;
     case 'd':
         term->row = k1 - 1;
@@ -652,8 +654,9 @@ ctrlseq(Term *term, uint8_t byte)
             sgr(term, params[i]);
         break;
     case 'n':
-        /* TODO: status report */
-        logfmt("NYI: Control Sequence n (DSR)\n");
+        /* Device Status Report (DSR) */
+        /* if we were a real terminal, we'd send a status reply (e.g. CPR) */
+        /* since there is no application listening, we can ignore this */
         break;
     case 'q':
         /* TODO: set keyboard LEDs */
