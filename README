@@ -50,6 +50,7 @@ congif [OPTIONS] timings dialogue
       -o output    File name of GIF output
       -d divisor   Speedup, as in scriptreplay(1)
       -m maxdelay  Maximum delay, as in scriptreplay(1)
+      -l count     GIF loop count
       -c on|off    Show/hide cursor
       -v           Verbose mode (show parser logs)
       -q           Quiet mode (don't show progress bar)
