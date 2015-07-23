@@ -1,8 +1,3 @@
-/* NOTES
-   - The encoder dumps uint16_t numbers as is into GIF files, which means it
-     only works on little-endian machines, since this is what GIF requires.
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +7,9 @@
 #include <unistd.h>
 
 #include "gif.h"
+
+/* helper to write a little-endian 16-bit number portably */
+#define write_num(fd, n) write((fd), (uint8_t []) {(n) & 0xFF, (n) >> 8}, 2)
 
 struct Node {
     uint16_t key;
@@ -53,8 +51,8 @@ new_gif(const char *fname, uint16_t w, uint16_t h, uint8_t *gct)
     if (gif->fd == -1)
         return NULL;
     write(gif->fd, "GIF89a", 6);
-    write(gif->fd, &w, 2);
-    write(gif->fd, &h, 2);
+    write_num(gif->fd, w);
+    write_num(gif->fd, h);
     write(gif->fd, (uint8_t []) {0xF3, 0x00, 0x00}, 3);
     write(gif->fd, gct, 0x30);
     return gif;
@@ -104,10 +102,10 @@ put_image(GIF *gif, uint16_t w, uint16_t h, uint16_t x, uint16_t y)
 
     root = malloc(sizeof(*root));
     write(gif->fd, ",", 1);
-    write(gif->fd, &x, 2);
-    write(gif->fd, &y, 2);
-    write(gif->fd, &w, 2);
-    write(gif->fd, &h, 2);
+    write_num(gif->fd, x);
+    write_num(gif->fd, y);
+    write_num(gif->fd, w);
+    write_num(gif->fd, h);
     write(gif->fd, (uint8_t []) {0x00, 0x04}, 2);
     /* Create nodes for single pixels. */
     for (nkeys = 0; nkeys < 0x10; nkeys++)
@@ -174,7 +172,7 @@ set_delay(GIF *gif, uint16_t d)
 #else
     write(gif->fd, (uint8_t []) {'!', 0xF9, 0x04, 0x04}, 4);
 #endif
-    write(gif->fd, &d, 2);
+    write_num(gif->fd, d);
     write(gif->fd, "\0\0", 2);
 }
 
