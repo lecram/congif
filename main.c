@@ -219,7 +219,7 @@ help(char *name)
         "  -o output    File name of GIF output\n"
         "  -d divisor   Speedup, as in scriptreplay(1)\n"
         "  -m maxdelay  Maximum delay, as in scriptreplay(1)\n"
-        "  -l count     GIF loop count\n"
+        "  -l count     GIF loop count (0 = infinite loop)\n"
         "  -c on|off    Show/hide cursor\n"
         "  -v           Verbose mode (show parser logs)\n"
         "  -q           Quiet mode (don't show progress bar)\n"
