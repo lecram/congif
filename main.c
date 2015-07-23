@@ -15,6 +15,10 @@
 #include "mbf.h"
 #include "gif.h"
 
+#define MAX(A, B)   ((A) > (B) ? (A) : (B))
+
+#define MIN_DELAY   6
+
 int
 get_index(Font *font, uint16_t code)
 {
@@ -118,6 +122,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     int w, h;
     int i, c;
     float d;
+    uint16_t rd;
     float lastdone, done;
     char pb[pbcols+1];
     GIF *gif;
@@ -161,7 +166,6 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     i = 0;
     d = 0;
     while (fscanf(ft, "%f %d\n", &t, &n) == 2) {
-        d += ((t > max ? max : t) * 100.0 / div);
         if (pbcols) {
             done = i * (pbcols-1) / c;
             if (done > lastdone) {
@@ -172,8 +176,10 @@ convert_script(Term *term, const char *timing, const char *dialogue,
                 fflush(stdout);
             }
         }
-        if (i && d > 5) {
-            render(term, font, gif, (uint16_t) (d + 0.5));
+        d += ((t > max ? max : t) * 100.0 / div);
+        rd = (uint16_t) (d + 0.5);
+        if (i && rd >= MIN_DELAY) {
+            render(term, font, gif, rd);
             d = 0;
         }
         while (n--) {
@@ -186,7 +192,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     }
     if (pbcols)
     	putchar('\n');
-    render(term, font, gif, 0);
+    render(term, font, gif, MAX(rd, MIN_DELAY));
     close_gif(gif);
     return 0;
 no_gif:
