@@ -111,7 +111,7 @@ render(Term *term, Font *font, GIF *gif, uint16_t delay)
 int
 convert_script(Term *term, const char *timing, const char *dialogue,
                const char *mbf, const char *anim, float div, float max,
-               int cur, int pbcols)
+               int loop, int cur, int pbcols)
 {
     FILE *ft;
     int fd;
@@ -144,7 +144,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     }
     w = term->cols * font->header.w;
     h = term->rows * font->header.h;
-    gif = new_gif(anim, w, h, term->plt);
+    gif = new_gif(anim, w, h, term->plt, loop);
     if (!gif) {
         fprintf(stderr, "error: could not create GIF: %s\n", anim);
         goto no_gif;
@@ -219,6 +219,7 @@ help(char *name)
         "  -o output    File name of GIF output\n"
         "  -d divisor   Speedup, as in scriptreplay(1)\n"
         "  -m maxdelay  Maximum delay, as in scriptreplay(1)\n"
+        "  -l count     GIF loop count\n"
         "  -c on|off    Show/hide cursor\n"
         "  -v           Verbose mode (show parser logs)\n"
         "  -q           Quiet mode (don't show progress bar)\n"
@@ -233,6 +234,7 @@ main(int argc, char *argv[])
     char *f;
     char *o;
     float d, m;
+    int l;
     char *t;
     char *s;
     int c;
@@ -247,9 +249,10 @@ main(int argc, char *argv[])
     f = "uw-ttyp0-11.mbf";
     o = "con.gif";
     d = 1.0; m = FLT_MAX;
+    l = -1;
     c = 1;
     q = 0;
-    while ((opt = getopt(argc, argv, "w:h:f:o:d:m:c:vq")) != -1) {
+    while ((opt = getopt(argc, argv, "w:h:f:o:d:m:l:c:vq")) != -1) {
         switch (opt) {
         case 'w':
             w = atoi(optarg);
@@ -268,6 +271,9 @@ main(int argc, char *argv[])
             break;
         case 'm':
             m = atof(optarg);
+            break;
+        case 'l':
+            l = atoi(optarg);
             break;
         case 'c':
             if (!strcmp(optarg, "on") || !strcmp(optarg, "1"))
@@ -294,7 +300,7 @@ main(int argc, char *argv[])
     t = argv[optind++];
     s = argv[optind++];
     term = new_term(h, w);
-    ret = convert_script(term, t, s, f, o, d, m, c, q ? 0 : size.ws_col-1);
+    ret = convert_script(term, t, s, f, o, d, m, l, c, q ? 0 : size.ws_col-1);
     free(term);
     return ret;
 }

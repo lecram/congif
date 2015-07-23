@@ -38,8 +38,10 @@ del_trie(Node *root)
     free(root);
 }
 
+static void put_loop(GIF *gif, uint16_t loop);
+
 GIF *
-new_gif(const char *fname, uint16_t w, uint16_t h, uint8_t *gct)
+new_gif(const char *fname, uint16_t w, uint16_t h, uint8_t *gct, int loop)
 {
     GIF *gif = calloc(1, sizeof(*gif) + 2*w*h);
     gif->w = w; gif->h = h;
@@ -55,7 +57,19 @@ new_gif(const char *fname, uint16_t w, uint16_t h, uint8_t *gct)
     write_num(gif->fd, h);
     write(gif->fd, (uint8_t []) {0xF3, 0x00, 0x00}, 3);
     write(gif->fd, gct, 0x30);
+    if (loop >= 0 && loop <= 0xFFFF)
+        put_loop(gif, (uint16_t) loop);
     return gif;
+}
+
+static void
+put_loop(GIF *gif, uint16_t loop)
+{
+    write(gif->fd, (uint8_t []) {'!', 0xFF, 0x0B}, 3);
+    write(gif->fd, "NETSCAPE2.0", 11);
+    write(gif->fd, (uint8_t []) {0x03, 0x01}, 2);
+    write_num(gif->fd, loop);
+    write(gif->fd, "\0", 1);
 }
 
 /* Add packed key to buffer, updating offset and partial.
