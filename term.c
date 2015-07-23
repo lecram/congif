@@ -522,7 +522,7 @@ ctrlseq(Term *term, uint8_t byte)
     switch (byte) {
     case '@':
         /* TODO: insert the indicated # of blank characters */
-        logfmt("BYI: Control Sequence @ (ICH)\n");
+        logfmt("NYI: Control Sequence @ (ICH)\n");
         break;
     case 'A':
         term->row -= k1;
