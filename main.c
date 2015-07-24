@@ -62,6 +62,8 @@ get_pair(Term *term, int row, int col)
         fore = 0x2;
     if (cell.attr & A_BOLD)
         fore |= 0x8;
+    if (cell.attr & A_BLINK)
+        back |= 0x8;
     return (fore << 4) | (back & 0xF);
 }
 
