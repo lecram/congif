@@ -164,7 +164,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
         rewind(ft);
     }
     i = 0;
-    d = 0;
+    d = rd = 0;
     while (fscanf(ft, "%f %d\n", &t, &n) == 2) {
         if (pbcols) {
             done = i * (pbcols-1) / c;
