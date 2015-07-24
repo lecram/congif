@@ -23,16 +23,14 @@ int
 get_index(Font *font, uint16_t code)
 {
     int index;
+    uint16_t *cur_code;
+    uint16_t codes[] = {code, 0xFFFD, 0x003F, 0x0020, 0};
 
-    index = search_glyph(font, code);
-    if (index == -1)
-        index = search_glyph(font, 0xFFFD);
-    if (index == -1)
-        index = search_glyph(font, 0x003F);
-    if (index == -1)
-        index = search_glyph(font, 0x0020);
-    if (index == -1)
-        index = search_glyph(font, 0x0000);
+    for (cur_code = &codes[0]; *cur_code; cur_code++) {
+        index = search_glyph(font, *cur_code);
+        if (index != -1)
+            break;
+    };
     return index;
 }
 
