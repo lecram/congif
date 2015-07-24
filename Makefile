@@ -1,5 +1,10 @@
+HDR = term.h mbf.h gif.h
+SRC = ${HDR:.h=.c}
+EHDR = default.h cs_vtg.h cs_437.h
+ESRC = main.c
+
 all: congif
-congif: term.c mbf.c gif.c main.c
-	$(CC) $(CFLAGS) -o $@ term.c mbf.c gif.c main.c
+congif: $(HDR) $(EHDR) $(SRC) $(ESRC)
+	$(CC) $(CFLAGS) -o $@ $(SRC) $(ESRC)
 clean:
 	$(RM) congif
