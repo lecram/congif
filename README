@@ -59,8 +59,8 @@ congif [options] timings dialogue
 Fonts
 -----
 
-For  simplicity, congif  uses a  custom font  format, MBF.  The font  UW
-ttyp0 [1], included in this distribution, is used by default.
+For  simplicity, congif  uses a  custom font  format, MBF.  The font
+misc-fixed [1], included in this distribution, is used by default.
 
 
 Examples
@@ -82,10 +82,8 @@ Copying
 All of the source code and documentation for congif is released into the
 public domain and provided without warranty of any kind.
 
-The  UW  ttyp0   fonts  are  released  under  the   ttyp0  License.  See
-LICENSE.uw-ttyp0 for details.
 
 Links
 -----
 
-[1] http://people.mpi-inf.mpg.de/~uwe/misc/uw-ttyp0/
+[1] http://www.cl.cam.ac.uk/~mgk25/ucs-fonts.html

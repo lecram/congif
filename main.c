@@ -246,7 +246,7 @@ main(int argc, char *argv[])
     ioctl(0, TIOCGWINSZ, &size);
     h = size.ws_row;
     w = size.ws_col;
-    f = "uw-ttyp0-11.mbf";
+    f = "misc-fixed-6x10.mbf";
     o = "con.gif";
     d = 1.0; m = FLT_MAX;
     l = -1;
