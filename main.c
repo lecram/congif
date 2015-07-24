@@ -192,8 +192,13 @@ convert_script(Term *term, const char *timing, const char *dialogue,
             term->mode &= ~M_CURSORVIS;
         i++;
     }
-    if (pbcols)
-    	putchar('\n');
+    if (pbcols) {
+        while (lastdone < pbcols-2) {
+            putchar('#');
+            lastdone++;
+        }
+        putchar('\n');
+    }
     render(term, font, gif, MAX(rd, MIN_DELAY));
     close_gif(gif);
     return 0;
