@@ -127,9 +127,8 @@ static int
 within_bounds(Term *term, int row, int col)
 {
     if (row < 0 || row >= term->rows || col < 0 || col >= term->cols) {
-        logfmt("error: cursor out of bounds, check terminal size\n");
-        logfmt("  position:   (%3d, %3d)\n", row+1, col+1);
-        logfmt("  dimensions: (%3d, %3d)\n", term->rows, term->cols);
+        logfmt("position %d,%d is out of bounds %d,%d\n",
+               row+1, col+1, term->rows, term->cols);
         return 0;
     } else {
         return 1;
