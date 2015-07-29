@@ -15,9 +15,22 @@
 #include "mbf.h"
 #include "gif.h"
 
+#define MIN(A, B)   ((A) < (B) ? (A) : (B))
 #define MAX(A, B)   ((A) > (B) ? (A) : (B))
 
 #define MIN_DELAY   6
+
+static struct Options {
+    char *timings, *dialogue;
+    char *output;
+    float maxdelay, divisor;
+    int loop;
+    char *font;
+    int height, width;
+    int cursor;
+    int quiet;
+    int barsize;
+} options;
 
 int
 get_index(Font *font, uint16_t code)
@@ -109,9 +122,7 @@ render(Term *term, Font *font, GIF *gif, uint16_t delay)
 }
 
 int
-convert_script(Term *term, const char *timing, const char *dialogue,
-               const char *mbf, const char *anim, float div, float max,
-               int loop, int cur, int pbcols)
+convert_script(Term *term)
 {
     FILE *ft;
     int fd;
@@ -124,38 +135,38 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     float d;
     uint16_t rd;
     float lastdone, done;
-    char pb[pbcols+1];
+    char pb[options.barsize+1];
     GIF *gif;
 
-    ft = fopen(timing, "r");
+    ft = fopen(options.timings, "r");
     if (!ft) {
-        fprintf(stderr, "error: could not load timings: %s\n", timing);
+        fprintf(stderr, "error: could not load timings: %s\n", options.timings);
         goto no_ft;
     }
-    fd = open(dialogue, O_RDONLY);
+    fd = open(options.dialogue, O_RDONLY);
     if (fd == -1) {
-        fprintf(stderr, "error: could not load dialogue: %s\n", dialogue);
+        fprintf(stderr, "error: could not load dialogue: %s\n", options.dialogue);
         goto no_fd;
     }
-    font = load_font(mbf);
+    font = load_font(options.font);
     if (!font) {
-        fprintf(stderr, "error: could not load font: %s\n", mbf);
+        fprintf(stderr, "error: could not load font: %s\n", options.font);
         goto no_font;
     }
     w = term->cols * font->header.w;
     h = term->rows * font->header.h;
-    gif = new_gif(anim, w, h, term->plt, loop);
+    gif = new_gif(options.output, w, h, term->plt, options.loop);
     if (!gif) {
-        fprintf(stderr, "error: could not create GIF: %s\n", anim);
+        fprintf(stderr, "error: could not create GIF: %s\n", options.output);
         goto no_gif;
     }
     /* discard first line of dialogue */
     do read(fd, &ch, 1); while (ch != '\n');
-    if (pbcols) {
+    if (options.barsize) {
         pb[0] = '[';
-        pb[pbcols-1] = ']';
-        pb[pbcols] = '\0';
-        for (i = 1; i < pbcols-1; i++)
+        pb[options.barsize-1] = ']';
+        pb[options.barsize] = '\0';
+        for (i = 1; i < options.barsize-1; i++)
             pb[i] = '-';
         lastdone = 0;
         printf("%s\r[", pb);
@@ -166,8 +177,8 @@ convert_script(Term *term, const char *timing, const char *dialogue,
     i = 0;
     d = rd = 0;
     while (fscanf(ft, "%f %d\n", &t, &n) == 2) {
-        if (pbcols) {
-            done = i * (pbcols-1) / c;
+        if (options.barsize) {
+            done = i * (options.barsize-1) / c;
             if (done > lastdone) {
                 while (done > lastdone) {
                     putchar('#');
@@ -176,7 +187,7 @@ convert_script(Term *term, const char *timing, const char *dialogue,
                 fflush(stdout);
             }
         }
-        d += ((t > max ? max : t) * 100.0 / div);
+        d += (MIN(t, options.maxdelay) * 100.0 / options.divisor);
         rd = (uint16_t) (d + 0.5);
         if (i && rd >= MIN_DELAY) {
             render(term, font, gif, rd);
@@ -186,12 +197,12 @@ convert_script(Term *term, const char *timing, const char *dialogue,
             read(fd, &ch, 1);
             parse(term, ch);
         }
-        if (!cur)
+        if (!options.cursor)
             term->mode &= ~M_CURSORVIS;
         i++;
     }
-    if (pbcols) {
-        while (lastdone < pbcols-2) {
+    if (options.barsize) {
+        while (lastdone < options.barsize-2) {
             putchar('#');
             lastdone++;
         }
@@ -231,63 +242,62 @@ help(char *name)
     , name);
 }
 
+void
+set_defaults(struct winsize *size)
+{
+
+    options.output = "con.gif";
+    options.maxdelay = FLT_MAX;
+    options.divisor = 1.0;
+    options.loop = -1;
+    options.font = "misc-fixed-6x10.mbf";
+    options.height = size->ws_row;
+    options.width = size->ws_col;
+    options.cursor = 1;
+    options.quiet = 0;
+}
+
 int
 main(int argc, char *argv[])
 {
     int opt;
-    int w, h;
-    char *f;
-    char *o;
-    float d, m;
-    int l;
-    char *t;
-    char *s;
-    int c;
-    int q;
     int ret;
     Term *term;
     struct winsize size;
 
     ioctl(0, TIOCGWINSZ, &size);
-    h = size.ws_row;
-    w = size.ws_col;
-    f = "misc-fixed-6x10.mbf";
-    o = "con.gif";
-    d = 1.0; m = FLT_MAX;
-    l = -1;
-    c = 1;
-    q = 0;
+    set_defaults(&size);
     while ((opt = getopt(argc, argv, "o:m:d:l:f:h:w:c:qv")) != -1) {
         switch (opt) {
         case 'o':
-            o = optarg;
+            options.output = optarg;
             break;
         case 'm':
-            m = atof(optarg);
+            options.maxdelay = atof(optarg);
             break;
         case 'd':
-            d = atof(optarg);
+            options.divisor = atof(optarg);
             break;
         case 'l':
-            l = atoi(optarg);
+            options.loop = atoi(optarg);
             break;
         case 'f':
-            f = optarg;
+            options.font = optarg;
             break;
         case 'h':
-            h = atoi(optarg);
+            options.height = atoi(optarg);
             break;
         case 'w':
-            w = atoi(optarg);
+            options.width = atoi(optarg);
             break;
         case 'c':
             if (!strcmp(optarg, "on") || !strcmp(optarg, "1"))
-                c = 1;
+                options.cursor = 1;
             else if (!strcmp(optarg, "off") || !strcmp(optarg, "0"))
-                c = 0;
+                options.cursor = 0;
             break;
         case 'q':
-            q = 1;
+            options.quiet = 1;
             break;
         case 'v':
             set_verbosity(1);
@@ -302,10 +312,11 @@ main(int argc, char *argv[])
         help(argv[0]);
         return 1;
     }
-    t = argv[optind++];
-    s = argv[optind++];
-    term = new_term(h, w);
-    ret = convert_script(term, t, s, f, o, d, m, l, c, q ? 0 : size.ws_col-1);
+    options.timings = argv[optind++];
+    options.dialogue = argv[optind++];
+    options.barsize = options.quiet ? 0 : size.ws_col-1;
+    term = new_term(options.height, options.width);
+    ret = convert_script(term);
     free(term);
     return ret;
 }
