@@ -206,7 +206,7 @@ add_frame(GIF *gif, uint16_t d)
         set_delay(gif, d);
     get_bbox(gif, &w, &h, &x, &y);
     if (x == gif->w || y == gif->h) {
-        /* image haven't changed; save one pixel just to add delay */
+        /* image's not changed; save one pixel just to add delay */
         w = h = 1;
         x = y = 0;
     }
