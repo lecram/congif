@@ -44,6 +44,8 @@ GIF *
 new_gif(const char *fname, uint16_t w, uint16_t h, uint8_t *gct, int loop)
 {
     GIF *gif = calloc(1, sizeof(*gif) + 2*w*h);
+    if (!gif)
+        goto no_gif;
     gif->w = w; gif->h = h;
     gif->cur = (uint8_t *) &gif[1];
     gif->old = &gif->cur[w*h];
@@ -51,7 +53,7 @@ new_gif(const char *fname, uint16_t w, uint16_t h, uint8_t *gct, int loop)
     memset(gif->old, 0x10, w*h);
     gif->fd = creat(fname, 0666);
     if (gif->fd == -1)
-        return NULL;
+        goto no_fd;
     write(gif->fd, "GIF89a", 6);
     write_num(gif->fd, w);
     write_num(gif->fd, h);
@@ -60,6 +62,10 @@ new_gif(const char *fname, uint16_t w, uint16_t h, uint8_t *gct, int loop)
     if (loop >= 0 && loop <= 0xFFFF)
         put_loop(gif, (uint16_t) loop);
     return gif;
+no_fd:
+    free(gif);
+no_gif:
+    return NULL;
 }
 
 static void
