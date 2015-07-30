@@ -1,0 +1,45 @@
+.TH MBF 5
+.SH NAME
+mbf \- Monospaced Bitmap Font
+.SH DESCRIPTION
+A font file using the MBF format consists of a header, a list of ranges and a
+list of bitmaps.
+.PP
+The header, located at the very beginning of the file, is intended to identify
+it as a MBF font and specify the number of glyphs as well as the glyph
+dimensions.
+.PP
+.RS
+.nf
+struct Header {
+    char sig[4];            /* signature: "MBF\\x01" */
+    uint16_t nglyphs;       /* number of glyphs */
+    uint8_t width, height;  /* glyph dimensions */
+};
+.fi
+.RE
+.PP
+This header is followed by a range list. The list starts with a \fBuint16_t\fR
+number indicating how many ranges follow. each range is composed of two numbers,
+\fIoffset\fR and \fIlength\fR (both \fBuint16_t\fR). \fIoffset\fR is the code of
+the first character in the range. \fIlength\fR is the number of characters in
+the range. For example, the ASCII range is represented by the tuple (0, 128).
+Ranges must not overlap. Ranges must be sorted by ascending order of
+\fIoffset\fR values.
+.PP
+The list of ranges is followed by a list of \fInglyphs\fR bitmaps. Each bitmap
+has \fIheight\fR rows. The number of bytes per row is the minimum necessary to
+accomodate \fIwidth\fR bits (this number is known as the \fBstride\fR). Paddings
+go in the right (least significant) bits of the last byte in the row.
+.PP
+.RS
+.nf
+stride = ceil(width / 8)
+.fi
+.RE
+.PP
+Bitmaps must be sorted by ascending order of code point, so that they can be
+located by searching the range list.
+.SH NOTES
+MBF files store 16-bit numbers using the native byte order. For this reason,
+they are not portable accross machines of different endianess.
