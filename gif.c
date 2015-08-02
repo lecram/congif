@@ -161,7 +161,7 @@ put_image(GIF *gif, uint16_t w, uint16_t h, uint16_t x, uint16_t y)
     del_trie(root);
 }
 
-static void
+static int
 get_bbox(GIF *gif, uint16_t *w, uint16_t *h, uint16_t *x, uint16_t *y)
 {
     int i, j, k;
@@ -179,9 +179,14 @@ get_bbox(GIF *gif, uint16_t *w, uint16_t *h, uint16_t *x, uint16_t *y)
             }
         }
     }
-    *x = left; *y = top;
-    *w = right - left + 1;
-    *h = bottom - top + 1;
+    if (left != gif->w && top != gif->h) {
+        *x = left; *y = top;
+        *w = right - left + 1;
+        *h = bottom - top + 1;
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 static void
@@ -204,8 +209,7 @@ add_frame(GIF *gif, uint16_t d)
 
     if (d)
         set_delay(gif, d);
-    get_bbox(gif, &w, &h, &x, &y);
-    if (x == gif->w || y == gif->h) {
+    if (!get_bbox(gif, &w, &h, &x, &y)) {
         /* image's not changed; save one pixel just to add delay */
         w = h = 1;
         x = y = 0;
