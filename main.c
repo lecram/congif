@@ -32,21 +32,6 @@ static struct Options {
     int barsize;
 } options;
 
-int
-get_index(Font *font, uint16_t code)
-{
-    int index;
-    uint16_t *cur_code;
-    uint16_t codes[] = {code, 0xFFFD, 0x003F, 0x0020, 0};
-
-    for (cur_code = &codes[0]; *cur_code; cur_code++) {
-        index = search_glyph(font, *cur_code);
-        if (index != -1)
-            break;
-    };
-    return index;
-}
-
 uint8_t
 get_pair(Term *term, int row, int col)
 {

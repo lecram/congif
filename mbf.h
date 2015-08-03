@@ -17,3 +17,4 @@ typedef struct Font {
 
 Font *load_font(const char *fname);
 int search_glyph(Font *font, uint16_t code);
+int get_index(Font *font, uint16_t code);
