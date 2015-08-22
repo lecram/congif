@@ -126,7 +126,7 @@ char_code(Term *term)
 static int
 within_bounds(Term *term, int row, int col)
 {
-    if (row < 0 || row >= term->rows || col < 0 || col >= term->cols) {
+    if (row < 0 || row >= term->rows || col < 0 || col > term->cols) {
         logfmt("position %d,%d is out of bounds %d,%d\n",
                row+1, col+1, term->rows, term->cols);
         return 0;
@@ -177,6 +177,17 @@ static void
 addchar(Term *term, uint16_t code)
 {
     Cell cell = (Cell) {code, term->attr, term->pair};
+    if (term->col >= term->cols) {
+        if (term->mode & M_AUTOWRAP) {
+            term->col = 0;
+            if (term->row < term->bot)
+                term->row++;
+            else
+                scroll_down(term);
+        } else {
+            term->col = term->cols - 1;
+        }
+    }
     if (!within_bounds(term, term->row, term->col))
         return;
     if (term->mode & M_INSERT) {
@@ -190,15 +201,7 @@ addchar(Term *term, uint16_t code)
     } else {
         term->addr[term->row][term->col] = cell;
     }
-    if (term->col < term->cols - 1) {
-        term->col++;
-    } else if (term->mode & M_AUTOWRAP) {
-        if (term->row < term->bot)
-            term->row++;
-        else
-            scroll_down(term);
-        term->col = 0;
-    }
+    term->col++;
 }
 
 static void
