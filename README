@@ -62,6 +62,10 @@ Fonts
 For  simplicity, congif  uses a  custom font  format, MBF.  The font
 misc-fixed [1], included in this distribution, is used by default.
 
+For  more  information on  the  MBF  format,  see the  mbf-util  [2]
+project. It  includes a  bdf2mbf tool that  converts fonts  from the
+popular BDF format to the MBF format.
+
 
 Examples
 --------
@@ -87,3 +91,4 @@ Links
 -----
 
 [1] http://www.cl.cam.ac.uk/~mgk25/ucs-fonts.html
+[2] https://github.com/lecram/mbf-util
