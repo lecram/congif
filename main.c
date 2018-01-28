@@ -228,7 +228,7 @@ help(char *name)
 }
 
 void
-set_defaults(struct winsize *size)
+set_defaults()
 {
 
     options.output = "con.gif";
@@ -236,10 +236,9 @@ set_defaults(struct winsize *size)
     options.divisor = 1.0;
     options.loop = -1;
     options.font = "misc-fixed-6x10.mbf";
-    options.height = size->ws_row;
-    options.width = size->ws_col;
     options.cursor = 1;
     options.quiet = 0;
+    options.barsize = 0;
 }
 
 int
@@ -247,11 +246,17 @@ main(int argc, char *argv[])
 {
     int opt;
     int ret;
+    int has_winsize, has_height, has_width;
     Term *term;
     struct winsize size;
 
-    ioctl(0, TIOCGWINSZ, &size);
-    set_defaults(&size);
+    set_defaults();
+    has_winsize = has_height = has_width = 0;
+    if (ioctl(0, TIOCGWINSZ, &size) != -1) {
+        options.height = size.ws_row;
+        options.width = size.ws_col;
+        has_winsize = 1;
+    }
     while ((opt = getopt(argc, argv, "o:m:d:l:f:h:w:c:qv")) != -1) {
         switch (opt) {
         case 'o':
@@ -271,9 +276,11 @@ main(int argc, char *argv[])
             break;
         case 'h':
             options.height = atoi(optarg);
+            has_height = 1;
             break;
         case 'w':
             options.width = atoi(optarg);
+            has_width = 1;
             break;
         case 'c':
             if (!strcmp(optarg, "on") || !strcmp(optarg, "1"))
@@ -293,13 +300,18 @@ main(int argc, char *argv[])
         }
     }
     if (optind >= argc - 1) {
-        fprintf(stderr, "%s: no input given\n", argv[0]);
+        fprintf(stderr, "error: no input given\n");
         help(argv[0]);
+        return 1;
+    }
+    if (!has_winsize && (!has_height || !has_width)) {
+        fprintf(stderr, "error: no terminal size specified\n");
         return 1;
     }
     options.timings = argv[optind++];
     options.dialogue = argv[optind++];
-    options.barsize = options.quiet ? 0 : size.ws_col-1;
+    if (!options.quiet && has_winsize)
+        options.barsize = size.ws_col - 1;
     term = new_term(options.height, options.width);
     ret = convert_script(term);
     free(term);
