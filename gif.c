@@ -137,11 +137,7 @@ put_image(GIF *gif, uint16_t w, uint16_t h, uint16_t x, uint16_t y)
     put_key(gif, 0x10, key_size); /* clear code */
     for (i = y; i < y+h; i++) {
         for (j = x; j < x+w; j++) {
-#ifdef CROP
-            uint8_t pixel = 2;
-#else
             uint8_t pixel = gif->cur[i*gif->w+j];
-#endif
             child = node->children[pixel];
             if (child) {
                 node = child;
@@ -193,11 +189,7 @@ get_bbox(GIF *gif, uint16_t *w, uint16_t *h, uint16_t *x, uint16_t *y)
 static void
 set_delay(GIF *gif, uint16_t d)
 {
-#ifdef CROP
-    write(gif->fd, (uint8_t []) {'!', 0xF9, 0x04, 0x08}, 4);
-#else
     write(gif->fd, (uint8_t []) {'!', 0xF9, 0x04, 0x04}, 4);
-#endif
     write_num(gif->fd, d);
     write(gif->fd, "\0\0", 2);
 }
