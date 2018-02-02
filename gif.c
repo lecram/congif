@@ -26,6 +26,17 @@ new_node(uint16_t key)
     return node;
 }
 
+static Node *
+new_trie(int *nkeys)
+{
+    Node *root = new_node(0);
+    /* Create nodes for single pixels. */
+    for (*nkeys = 0; *nkeys < 0x10; (*nkeys)++)
+        root->children[*nkeys] = new_node(*nkeys);
+    *nkeys += 2; /* skip clear code and stop code */
+    return root;
+}
+
 static void
 del_trie(Node *root)
 {
@@ -128,12 +139,8 @@ put_image(GIF *gif, uint16_t w, uint16_t h, uint16_t x, uint16_t y)
     write_num(gif->fd, w);
     write_num(gif->fd, h);
     write(gif->fd, (uint8_t []) {0x00, 0x04}, 2);
-    /* Create nodes for single pixels. */
-    for (nkeys = 0; nkeys < 0x10; nkeys++)
-        root->children[nkeys] = new_node(nkeys);
-    node = root;
+    root = node = new_trie(&nkeys);
     key_size = 5;
-    nkeys += 2; /* skip clear code and stop code */
     put_key(gif, 0x10, key_size); /* clear code */
     for (i = y; i < y+h; i++) {
         for (j = x; j < x+w; j++) {
@@ -147,6 +154,11 @@ put_image(GIF *gif, uint16_t w, uint16_t h, uint16_t x, uint16_t y)
                     if (nkeys == (1 << key_size))
                         key_size++;
                     node->children[pixel] = new_node(nkeys++);
+                } else {
+                    put_key(gif, 0x10, key_size); /* clear code */
+                    del_trie(root);
+                    root = node = new_trie(&nkeys);
+                    key_size = 5;
                 }
                 node = root->children[pixel];
             }
