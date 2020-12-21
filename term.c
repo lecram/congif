@@ -223,8 +223,9 @@ ctrlchar(Term *term, uint8_t byte)
         if (term->col) term->col--;
         break;
     case 0x09:
-        /* TODO: go to next tab stop or end of line */
-        logfmt("NYI: Control Character 0x09 (TAB)\n");
+        /* TODO: See ESC Sequence H (HTS) */
+        term->col &= ~7; term->col += 8;
+        CLIPCOL(term->cols-1);
         break;
     case 0x0A: case 0x0B: case 0x0C:
         linefeed(term);
