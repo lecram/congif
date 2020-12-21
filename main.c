@@ -57,7 +57,7 @@ get_pair(Term *term, int row, int col)
         fore = 0x2;
     if (cell.attr & A_BOLD)
         fore |= 0x8;
-    if (cell.attr & A_BLINK)
+    if (cell.attr & A_BRIGHTBG)
         back |= 0x8;
     if ((cell.attr & A_INVISIBLE) != 0) fore = back;
     return (fore << 4) | (back & 0xF);

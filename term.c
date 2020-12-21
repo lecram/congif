@@ -495,6 +495,14 @@ sgr(Term *term, int number)
     case 49:
         term->pair = (term->pair & 0xF0) | DEF_BACK;
         break;
+    case 90: case 91: case 92: case 93: case 94: case 95: case 96: case 97:
+        term->pair = ((number - 90) << 4) | (term->pair & 0x0F);
+        term->attr |= A_BOLD;
+        break;
+    case 100: case 101: case 102: case 103: case 104: case 105: case 106: case 107:
+        term->pair = (term->pair & 0xF0) | (number - 100);
+        term->attr |= A_BRIGHTBG;
+        break;
     default:
         logfmt("UNS: SGR %d\n", number);
     }
