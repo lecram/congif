@@ -23,7 +23,7 @@
 
 #define EMPTY       0x0020
 #define BCE         1
-#if BCE
+#if !BCE
   #define BLANK (Cell) {EMPTY, def_attr, def_pair}
 #else
   #define BLANK (Cell) {EMPTY, term->attr, term->pair}
