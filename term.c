@@ -329,6 +329,8 @@ escseq(Term *term, uint8_t byte)
             break;
         case 'K':
             logfmt("UNS: user-defined mapping\n");
+            term->cs_array[0] = CS_BMP;
+            break;
         }
         break;
     case ')':
@@ -344,6 +346,8 @@ escseq(Term *term, uint8_t byte)
             break;
         case 'K':
             logfmt("UNS: user-defined mapping\n");
+            term->cs_array[1] = CS_BMP;
+            break;
         }
         break;
     case '>':
