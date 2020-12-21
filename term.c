@@ -423,88 +423,134 @@ modeswitch(Term *term, int private, int number, int value)
 }
 
 static void
-sgr(Term *term, int number)
+sgr(Term *term, int n, int *params)
 {
-    switch (number) {
-    case 0:
-        term->attr = def_attr;
-        term->pair = def_pair;
-        break;
-    case 1:
-        term->attr |= A_BOLD;
-        break;
-    case 2:
-        term->attr |= A_DIM;
-        break;
-    case 4:
-        term->attr |= A_UNDERLINE;
-        break;
-    case 5:
-        term->attr |= A_BLINK;
-        break;
-    case 7:
-        term->attr |= A_INVERSE;
-        break;
-    case 8:
-        term->attr |= A_INVISIBLE;
-        break;
-    case 10:
-        /* TODO: reset toggle meta flag */
-        term->cs_array[term->cs_index = 0] = CS_BMP;
-        term->mode &= ~M_DISPCTRL;
-        break;
-    case 11:
-        /* TODO: reset toggle meta flag */
-        term->cs_array[term->cs_index] = CS_437;
-        term->mode |= M_DISPCTRL;
-        break;
-    case 12:
-        /* TODO: set toggle meta flag */
-        term->cs_array[term->cs_index] = CS_437;
-        term->mode |= M_DISPCTRL;
-        break;
-    case 21:
-        term->attr &= ~A_BOLD;
-        break;
-    case 22:
-        term->attr &= ~A_DIM;
-        break;
-    case 24:
-        term->attr &= ~A_UNDERLINE;
-        break;
-    case 25:
-        term->attr &= ~A_BLINK;
-        break;
-    case 27:
-        term->attr &= ~A_INVERSE;
-        break;
-    case 30: case 31: case 32: case 33: case 34: case 35: case 36: case 37:
-        term->pair = ((number - 30) << 4) | (term->pair & 0x0F);
-        break;
-    case 38:
-        term->attr |= A_UNDERLINE;
-        term->pair = (DEF_FORE << 4) | (term->pair & 0x0F);
-        break;
-    case 39:
-        term->attr &= ~A_UNDERLINE;
-        term->pair = (DEF_FORE << 4) | (term->pair & 0x0F);
-        break;
-    case 40: case 41: case 42: case 43: case 44: case 45: case 46: case 47:
-        term->pair = (term->pair & 0xF0) | (number - 40);
-        break;
-    case 49:
-        term->pair = (term->pair & 0xF0) | DEF_BACK;
-        break;
-    case 90: case 91: case 92: case 93: case 94: case 95: case 96: case 97:
-        term->pair = ((number - 90) << 4) | (term->pair & 0x0F);
-        term->attr |= A_BOLD;
-        break;
-    case 100: case 101: case 102: case 103: case 104: case 105: case 106: case 107:
-        term->pair = (term->pair & 0xF0) | (number - 100);
-        term->attr |= A_BRIGHTBG;
-        break;
-    default:
-        logfmt("UNS: SGR %d\n", number);
+    int i, number;
+    for(i=0; i<n; i++) {
+        number = params[i];
+
+        switch (number) {
+        case 0:
+            term->attr = def_attr;
+            term->pair = def_pair;
+            break;
+        case 1:
+            term->attr |= A_BOLD;
+            break;
+        case 2:
+            term->attr |= A_DIM;
+            break;
+        case 4:
+            term->attr |= A_UNDERLINE;
+            break;
+        case 5:
+            term->attr |= A_BLINK;
+            break;
+        case 7:
+            term->attr |= A_INVERSE;
+            break;
+        case 8:
+            term->attr |= A_INVISIBLE;
+            break;
+        case 10:
+            /* TODO: reset toggle meta flag */
+            term->cs_array[term->cs_index = 0] = CS_BMP;
+            term->mode &= ~M_DISPCTRL;
+            break;
+        case 11:
+            /* TODO: reset toggle meta flag */
+            term->cs_array[term->cs_index] = CS_437;
+            term->mode |= M_DISPCTRL;
+            break;
+        case 12:
+            /* TODO: set toggle meta flag */
+            term->cs_array[term->cs_index] = CS_437;
+            term->mode |= M_DISPCTRL;
+            break;
+        case 21:
+            term->attr &= ~A_BOLD;
+            break;
+        case 22:
+            term->attr &= ~A_DIM;
+            break;
+        case 24:
+            term->attr &= ~A_UNDERLINE;
+            break;
+        case 25:
+            term->attr &= ~A_BLINK;
+            break;
+        case 27:
+            term->attr &= ~A_INVERSE;
+            break;
+        case 30: case 31: case 32: case 33: case 34: case 35: case 36: case 37:
+            term->pair = ((number - 30) << 4) | (term->pair & 0x0F);
+            break;
+#ifdef OLDLINUX
+        case 38:
+            term->attr |= A_UNDERLINE;
+            term->pair = (DEF_FORE << 4) | (term->pair & 0x0F);
+            break;
+        case 39:
+            term->attr &= ~A_UNDERLINE;
+            term->pair = (DEF_FORE << 4) | (term->pair & 0x0F);
+            break;
+#endif
+#ifndef OLDLINUX
+        case 38:
+            i++ ;
+            if (i>n) break;
+            if (params[i] == 5) {
+                i++; /* 256 colours */
+                term->pair = (DEF_FORE << 4) | (term->pair & 0x0F);
+                break;
+            } else if (params[i] == 2) {
+                i+=3;
+                /* 16M colours, note I'm using common form not strict ITU T.416 */
+                term->pair = (DEF_FORE << 4) | (term->pair & 0x0F);
+                break;
+            }
+            /* Could be CMYK; probably broken */
+            i = n;
+            break;
+        case 39:
+            term->pair = (DEF_FORE << 4) | (term->pair & 0x0F);
+            break;
+#endif
+        case 40: case 41: case 42: case 43: case 44: case 45: case 46: case 47:
+            term->pair = (term->pair & 0xF0) | (number - 40);
+            break;
+#ifndef OLDLINUX
+        case 48:
+            i++ ;
+            if (i>n) break;
+            if (params[i] == 5) {
+                i++; /* 256 colours */
+                term->pair = (term->pair & 0xF0) | DEF_BACK;
+                break;
+            } else if (params[i] == 2) {
+                i+=3;
+                /* 16M colours, note I'm using common form not strict ITU T.416 */
+                term->pair = (term->pair & 0xF0) | DEF_BACK;
+                break;
+            }
+            /* Could be CMYK; probably broken */
+            i = n;
+            break;
+#endif
+        case 49:
+            term->pair = (term->pair & 0xF0) | DEF_BACK;
+            break;
+        case 90: case 91: case 92: case 93: case 94: case 95: case 96: case 97:
+            term->pair = ((number - 90) << 4) | (term->pair & 0x0F);
+            term->attr |= A_BOLD;
+            break;
+        case 100: case 101: case 102: case 103: case 104: case 105: case 106: case 107:
+            term->pair = (term->pair & 0xF0) | (number - 100);
+            term->attr |= A_BRIGHTBG;
+            break;
+        default:
+            logfmt("UNS: SGR %d\n", number);
+        }
     }
 }
 
@@ -663,8 +709,7 @@ ctrlseq(Term *term, uint8_t byte)
             modeswitch(term, private, params[i], 0);
         break;
     case 'm':
-        for (i = 0; i < n; i++)
-            sgr(term, params[i]);
+        sgr(term, n, params);
         break;
     case 'n':
         /* Device Status Report (DSR) */
