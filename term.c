@@ -736,6 +736,15 @@ parse(Term *term, uint8_t byte)
                 }
             }
             break;
+        case S_OSCESC: case S_STRESC:
+            if (byte == '\\') {
+                /* do_osc_etc() */
+                if (term->state == S_OSCESC)
+                    logfmt("NYI: Operating System Sequence\n");
+            }
+            RESET_STATE(term);
+            term->state = S_ESC;
+            /*FALLTHROUGH*/
         case S_ESC:
             es = 1;
             if (!term->parlen) {
@@ -744,6 +753,13 @@ parse(Term *term, uint8_t byte)
                     es = 0;
                 } else if (byte == 0x5D) {
                     term->state = S_OSC;
+                    es = 0;
+                } else if (byte == 'P' || /* DCS */
+                           byte == '_' || /* APC */
+                           byte == '^' || /* PM */
+                           byte == 'X'    /* SOS */
+                        ) {
+                    term->state = S_STR; /* A string to eat */
                     es = 0;
                 }
             }
@@ -764,10 +780,27 @@ parse(Term *term, uint8_t byte)
                 RESET_STATE(term);
             }
             break;
-        case S_OSC:
+        case S_OSC: case S_STR:
             /* TODO: set/reset palette entries */
-            logfmt("NYI: Operating System Sequence\n");
-            RESET_STATE(term);
+            /* Currently this just eats the string */
+            if (byte == 0x1B) {
+                if (term->state == S_OSC)
+                    term->state = S_OSCESC;
+                else
+                    term->state = S_STRESC;
+            } else if (byte == 13 || byte == 10)
+                RESET_STATE(term);   /* CR or LF assume something broke */
+            else if (byte == 7) {
+                /* do_osc_etc() */
+                if (term->state == S_OSC)
+                    logfmt("NYI: Operating System Sequence\n");
+                RESET_STATE(term);
+            } else {
+                if (term->parlen < MAX_PARTIAL-3)
+                    PARCAT(term, byte);
+                else
+                    term->state = S_STR;
+            }
             break;
         case S_UNI:
             PARCAT(term, byte);
