@@ -696,6 +696,11 @@ parse(Term *term, uint8_t byte)
 {
     int es;
 
+    /* Bad suffix for a unicode sequence, dump it and interpret this byte normally. */
+    if (term->state == S_UNI && (byte < 0x80 || byte >= 0xC0)) {
+        addchar(term, 0xFFFD);
+        RESET_STATE(term);
+    }
     if (byte != 0x1B && byte < 0x20 && !(term->mode & M_DISPCTRL)) {
         ctrlchar(term, byte);
     } else {
@@ -714,11 +719,12 @@ parse(Term *term, uint8_t byte)
                     if (byte < 0x80) {
                         /* single-byte UTF-8, i.e. ASCII */
                         addchar(term, byte);
-                    } else {
+                    } else if (byte >= 0xC0) {
                         term->unilen = CHARLEN(byte);
                         PARCAT(term, byte);
                         term->state = S_UNI;
-                    }
+                    } else
+                        addchar(term, 0xFFFD);
                     break;
                 case CS_VTG:
                     addchar(term, cs_vtg[byte]);
