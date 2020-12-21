@@ -445,6 +445,9 @@ sgr(Term *term, int number)
     case 7:
         term->attr |= A_INVERSE;
         break;
+    case 8:
+        term->attr |= A_INVISIBLE;
+        break;
     case 10:
         /* TODO: reset toggle meta flag */
         term->cs_array[term->cs_index = 0] = CS_BMP;

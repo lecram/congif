@@ -39,7 +39,6 @@ get_pair(Term *term, int row, int col)
     uint8_t fore, back;
     int inverse;
 
-    /* TODO: add support for A_INVISIBLE */
     inverse = term->mode & M_REVERSE;
     if (term->mode & M_CURSORVIS)
         inverse = term->row == row && term->col == col ? !inverse : inverse;
@@ -60,6 +59,7 @@ get_pair(Term *term, int row, int col)
         fore |= 0x8;
     if (cell.attr & A_BLINK)
         back |= 0x8;
+    if ((cell.attr & A_INVISIBLE) != 0) fore = back;
     return (fore << 4) | (back & 0xF);
 }
 
