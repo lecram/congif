@@ -553,6 +553,9 @@ ctrlseq(Term *term, uint8_t byte)
         if (n == 2) {
             term->row = MAX(params[0], 1) - 1;
             term->col = MAX(params[1], 1) - 1;
+        } else if (n == 1) {
+            term->row = MAX(params[0], 1) - 1;
+            term->col = 0;
         } else {
             term->row = term->col = 0;
         }
