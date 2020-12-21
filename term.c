@@ -298,8 +298,23 @@ escseq(Term *term, uint8_t byte)
         logfmt("NYI: ESC Sequence %% (character set selection)\n");
         break;
     case '#':
-        /* TODO: DEC screen alignment test */
-        logfmt("NYI: ESC Sequence # (DECALN)\n");
+        switch(second)
+        {
+        case '8':
+            {
+                int i, j;
+                for (i = 0; i < term->rows; i++) {
+                    for (j = 0; j < term->cols; j++) {
+                        term->addr[i][j] = (Cell) {'E', def_attr, def_pair};
+                    }
+                }
+            }
+            break;
+        default:
+            /* TODO */
+            logfmt("NYI: ESC Sequence # 3..6 DECDWL etc\n");
+            break;
+        }
         break;
     case '(':
         switch (second) {
