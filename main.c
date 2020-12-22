@@ -14,6 +14,7 @@
 #include "term.h"
 #include "mbf.h"
 #include "gif.h"
+#include "default_font.h"
 
 #define MIN(A, B)   ((A) < (B) ? (A) : (B))
 #define MAX(A, B)   ((A) > (B) ? (A) : (B))
@@ -133,10 +134,14 @@ convert_script(Term *term)
         fprintf(stderr, "error: could not load dialogue: %s\n", options.dialogue);
         goto no_fd;
     }
-    font = load_font(options.font);
-    if (!font) {
-        fprintf(stderr, "error: could not load font: %s\n", options.font);
-        goto no_font;
+    if (options.font == 0) {
+	font = default_font;
+    } else {
+	font = load_font(options.font);
+	if (!font) {
+	    fprintf(stderr, "error: could not load font: %s\n", options.font);
+	    goto no_font;
+	}
     }
     w = term->cols * font->header.w;
     h = term->rows * font->header.h;
@@ -197,7 +202,7 @@ convert_script(Term *term)
     close_gif(gif);
     return 0;
 no_gif:
-    free(font);
+    if (options.font) free(font);
 no_font:
     close(fd);
 no_fd:
@@ -235,7 +240,7 @@ set_defaults()
     options.maxdelay = FLT_MAX;
     options.divisor = 1.0;
     options.loop = -1;
-    options.font = "misc-fixed-6x10.mbf";
+    options.font = 0;
     options.cursor = 1;
     options.quiet = 0;
     options.barsize = 0;
