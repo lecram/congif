@@ -31,6 +31,9 @@ static struct Options {
     int cursor;
     int quiet;
     int barsize;
+
+    int has_winsize;
+    struct winsize size;
 } options;
 
 uint8_t
@@ -108,7 +111,7 @@ render(Term *term, Font *font, GIF *gif, uint16_t delay)
 }
 
 int
-convert_script(Term *term)
+convert_script()
 {
     FILE *ft;
     int fd;
@@ -122,7 +125,10 @@ convert_script(Term *term)
     uint16_t rd;
     float lastdone, done;
     char pb[options.barsize+1];
+    char fl[512];
+    int fln = 0;
     GIF *gif;
+    Term *term;
 
     ft = fopen(options.timings, "r");
     if (!ft) {
@@ -143,6 +149,44 @@ convert_script(Term *term)
 	    goto no_font;
 	}
     }
+
+    /* Save first line of dialogue */
+    do {
+        if (read(fd, &ch, 1) <= 0) break;
+        if (fln<(int)sizeof(fl)-1) fl[fln++]=ch;
+    } while (ch != '\n');
+    /* Inspect it for the terminal size if needed */
+    if (fln > 16 && (options.height == 0 || options.width == 0)) {
+        int col=0, ln=0;
+        char * s;
+        fl[fln] = 0;
+        s = strstr(fl, "COLUMNS=\"");
+        if (s) col = atoi(s+9);
+        s = strstr(fl, "LINES=\"");
+        if (s) ln = atoi(s+7);
+
+        if (ln>0 && col>0) {
+            if (options.width <= 0)
+                options.width = col;
+            if (options.height <= 0)
+                options.height = ln;
+        }
+    }
+
+    /* Default the VT to our real terminal */
+    if (options.has_winsize && (options.height == 0 || options.width == 0)) {
+        if (options.height <= 0)
+            options.height = options.size.ws_row;
+        if (options.width <= 0)
+            options.width = options.size.ws_col;
+    }
+
+    if (options.width <= 0 || options.height <= 0) {
+        fprintf(stderr, "error: no terminal size specified\n");
+        goto no_termsize;
+    }
+
+    term = new_term(options.height, options.width);
     w = term->cols * font->header.w;
     h = term->rows * font->header.h;
     gif = new_gif(options.output, w, h, term->plt, options.loop);
@@ -150,8 +194,6 @@ convert_script(Term *term)
         fprintf(stderr, "error: could not create GIF: %s\n", options.output);
         goto no_gif;
     }
-    /* discard first line of dialogue */
-    do read(fd, &ch, 1); while (ch != '\n');
     if (options.barsize) {
         pb[0] = '[';
         pb[options.barsize-1] = ']';
@@ -200,8 +242,11 @@ convert_script(Term *term)
     }
     render(term, font, gif, MAX(rd, MIN_DELAY));
     close_gif(gif);
+    free(term);
     return 0;
 no_gif:
+    free(term);
+no_termsize:
     if (options.font) free(font);
 no_font:
     close(fd);
@@ -235,7 +280,8 @@ help(char *name)
 void
 set_defaults()
 {
-
+    options.height = 0;
+    options.width = 0;
     options.output = "con.gif";
     options.maxdelay = FLT_MAX;
     options.divisor = 1.0;
@@ -251,16 +297,11 @@ main(int argc, char *argv[])
 {
     int opt;
     int ret;
-    int has_winsize, has_height, has_width;
-    Term *term;
-    struct winsize size;
 
     set_defaults();
-    has_winsize = has_height = has_width = 0;
-    if (ioctl(0, TIOCGWINSZ, &size) != -1) {
-        options.height = size.ws_row;
-        options.width = size.ws_col;
-        has_winsize = 1;
+    options.has_winsize = 0;
+    if (ioctl(0, TIOCGWINSZ, &options.size) != -1) {
+        options.has_winsize = 1;
     }
     while ((opt = getopt(argc, argv, "o:m:d:l:f:h:w:c:qv")) != -1) {
         switch (opt) {
@@ -281,11 +322,9 @@ main(int argc, char *argv[])
             break;
         case 'h':
             options.height = atoi(optarg);
-            has_height = 1;
             break;
         case 'w':
             options.width = atoi(optarg);
-            has_width = 1;
             break;
         case 'c':
             if (!strcmp(optarg, "on") || !strcmp(optarg, "1"))
@@ -309,16 +348,10 @@ main(int argc, char *argv[])
         help(argv[0]);
         return 1;
     }
-    if (!has_winsize && (!has_height || !has_width)) {
-        fprintf(stderr, "error: no terminal size specified\n");
-        return 1;
-    }
     options.timings = argv[optind++];
     options.dialogue = argv[optind++];
-    if (!options.quiet && has_winsize)
-        options.barsize = size.ws_col - 1;
-    term = new_term(options.height, options.width);
-    ret = convert_script(term);
-    free(term);
+    if (!options.quiet && options.has_winsize)
+        options.barsize = options.size.ws_col - 1;
+    ret = convert_script();
     return ret;
 }
