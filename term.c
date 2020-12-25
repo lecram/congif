@@ -227,8 +227,9 @@ ctrlchar(Term *term, uint8_t byte)
         if (term->col) term->col--;
         break;
     case 0x09:
-        /* TODO: go to next tab stop or end of line */
-        logfmt("NYI: Control Character 0x09 (TAB)\n");
+        /* TODO: See ESC Sequence H (HTS) */
+        term->col &= ~7; term->col += 8;
+        CLIPCOL(term->cols-1);
         break;
     case 0x0A: case 0x0B: case 0x0C:
         CLEARWRAP;
@@ -306,8 +307,23 @@ escseq(Term *term, uint8_t byte)
         logfmt("NYI: ESC Sequence %% (character set selection)\n");
         break;
     case '#':
-        /* TODO: DEC screen alignment test */
-        logfmt("NYI: ESC Sequence # (DECALN)\n");
+        switch(second)
+        {
+        case '8':
+            {
+                int i, j;
+                for (i = 0; i < term->rows; i++) {
+                    for (j = 0; j < term->cols; j++) {
+                        term->addr[i][j] = (Cell) {'E', def_attr, def_pair};
+                    }
+                }
+            }
+            break;
+        default:
+            /* TODO */
+            logfmt("NYI: ESC Sequence # 3..6 DECDWL etc\n");
+            break;
+        }
         break;
     case '(':
         switch (second) {
@@ -322,6 +338,8 @@ escseq(Term *term, uint8_t byte)
             break;
         case 'K':
             logfmt("UNS: user-defined mapping\n");
+            term->cs_array[0] = CS_BMP;
+            break;
         }
         break;
     case ')':
@@ -337,6 +355,8 @@ escseq(Term *term, uint8_t byte)
             break;
         case 'K':
             logfmt("UNS: user-defined mapping\n");
+            term->cs_array[1] = CS_BMP;
+            break;
         }
         break;
     case '>':
@@ -729,6 +749,11 @@ parse(Term *term, uint8_t byte)
 {
     int es;
 
+    /* Bad suffix for a unicode sequence, dump it and interpret this byte normally. */
+    if (term->state == S_UNI && (byte < 0x80 || byte >= 0xC0)) {
+        addchar(term, 0xFFFD);
+        RESET_STATE(term);
+    }
     if (byte != 0x1B && byte < 0x20 && !(term->mode & M_DISPCTRL)) {
         ctrlchar(term, byte);
     } else {
@@ -747,11 +772,12 @@ parse(Term *term, uint8_t byte)
                     if (byte < 0x80) {
                         /* single-byte UTF-8, i.e. ASCII */
                         addchar(term, byte);
-                    } else {
+                    } else if (byte >= 0xC0) {
                         term->unilen = CHARLEN(byte);
                         PARCAT(term, byte);
                         term->state = S_UNI;
-                    }
+                    } else
+                        addchar(term, 0xFFFD);
                     break;
                 case CS_VTG:
                     addchar(term, cs_vtg[byte]);
@@ -762,6 +788,15 @@ parse(Term *term, uint8_t byte)
                 }
             }
             break;
+        case S_OSCESC: case S_STRESC:
+            if (byte == '\\') {
+                /* do_osc_etc() */
+                if (term->state == S_OSCESC)
+                    logfmt("NYI: Operating System Sequence\n");
+            }
+            RESET_STATE(term);
+            term->state = S_ESC;
+            /*FALLTHROUGH*/
         case S_ESC:
             es = 1;
             if (!term->parlen) {
@@ -770,6 +805,13 @@ parse(Term *term, uint8_t byte)
                     es = 0;
                 } else if (byte == 0x5D) {
                     term->state = S_OSC;
+                    es = 0;
+                } else if (byte == 'P' || /* DCS */
+                           byte == '_' || /* APC */
+                           byte == '^' || /* PM */
+                           byte == 'X'    /* SOS */
+                        ) {
+                    term->state = S_STR; /* A string to eat */
                     es = 0;
                 }
             }
@@ -790,10 +832,27 @@ parse(Term *term, uint8_t byte)
                 RESET_STATE(term);
             }
             break;
-        case S_OSC:
+        case S_OSC: case S_STR:
             /* TODO: set/reset palette entries */
-            logfmt("NYI: Operating System Sequence\n");
-            RESET_STATE(term);
+            /* Currently this just eats the string */
+            if (byte == 0x1B) {
+                if (term->state == S_OSC)
+                    term->state = S_OSCESC;
+                else
+                    term->state = S_STRESC;
+            } else if (byte == 13 || byte == 10)
+                RESET_STATE(term);   /* CR or LF assume something broke */
+            else if (byte == 7) {
+                /* do_osc_etc() */
+                if (term->state == S_OSC)
+                    logfmt("NYI: Operating System Sequence\n");
+                RESET_STATE(term);
+            } else {
+                if (term->parlen < MAX_PARTIAL-3)
+                    PARCAT(term, byte);
+                else
+                    term->state = S_STR;
+            }
             break;
         case S_UNI:
             PARCAT(term, byte);

@@ -23,7 +23,7 @@
 
 #define EMPTY       0x0020
 #define BCE         1
-#if BCE
+#if !BCE
   #define BLANK (Cell) {EMPTY, def_attr, def_pair}
 #else
   #define BLANK (Cell) {EMPTY, term->attr, term->pair}
@@ -39,7 +39,7 @@ typedef struct Cell {
 } Cell;
 
 typedef enum CharSet {CS_BMP, CS_VTG, CS_437} CharSet;
-typedef enum State {S_ANY, S_ESC, S_CSI, S_OSC, S_UNI} State;
+typedef enum State {S_ANY, S_ESC, S_CSI, S_OSC, S_OSCESC, S_STR, S_STRESC, S_UNI} State;
 
 typedef struct SaveCursor {
     int row, col;
