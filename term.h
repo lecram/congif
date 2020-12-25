@@ -7,6 +7,7 @@
 #define A_INVERSE   0x20
 #define A_INVISIBLE 0x40
 #define A_CROSSED   0x80
+#define A_BRIGHTBG  A_BLINK
 
 #define M_DISPCTRL  0x0001
 #define M_INSERT    0x0002
