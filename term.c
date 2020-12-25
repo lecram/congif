@@ -10,6 +10,9 @@
 #include "cs_437.h"
 
 #define MAX(A, B)   ((A) > (B) ? (A) : (B))
+#define CLEARWRAP   do{ if (term->col >= term->cols) term->col = term->cols-1; }while(0)
+#define CLIPROW(X)  if (term->row<0 || term->row >= term->rows) term->row = X
+#define CLIPCOL(X)  if (term->col<0 || term->col >= term->cols) term->col = X
 
 static int verbose = 0;
 
@@ -220,6 +223,7 @@ ctrlchar(Term *term, uint8_t byte)
 {
     switch (byte) {
     case 0x08:
+        CLEARWRAP;
         if (term->col) term->col--;
         break;
     case 0x09:
@@ -227,6 +231,7 @@ ctrlchar(Term *term, uint8_t byte)
         logfmt("NYI: Control Character 0x09 (TAB)\n");
         break;
     case 0x0A: case 0x0B: case 0x0C:
+        CLEARWRAP;
         linefeed(term);
         break;
     case 0x0D:
@@ -258,12 +263,14 @@ escseq(Term *term, uint8_t byte)
         reset(term);
         break;
     case 'D':
+        CLEARWRAP;
         if (term->row == term->bot)
             scroll_down(term);
         else
             term->row++;
         break;
     case 'E':
+        CLEARWRAP;
         if (term->row == term->bot) {
             scroll_down(term);
             term->col = 0;
@@ -287,9 +294,11 @@ escseq(Term *term, uint8_t byte)
         /* since there is no application listening, we can ignore this */
         break;
     case '7':
+        CLEARWRAP;
         save_misc(term);
         break;
     case '8':
+        CLEARWRAP;
         load_misc(term);
         break;
     case '%':
@@ -523,43 +532,61 @@ ctrlseq(Term *term, uint8_t byte)
     k1 = k ? k : 1;
     switch (byte) {
     case '@':
+        CLEARWRAP;
         /* TODO: insert the indicated # of blank characters */
         logfmt("NYI: Control Sequence @ (ICH)\n");
         break;
     case 'A':
+        CLEARWRAP;
         term->row -= k1;
+        CLIPROW(0);
         break;
     case 'B': case 'e':
+        CLEARWRAP;
         term->row += k1;
+        CLIPROW(term->rows-1);
         break;
     case 'C': case 'a':
+        CLEARWRAP;
         term->col += k1;
+        CLIPCOL(term->cols-1);
         break;
     case 'D':
+        CLEARWRAP;
         term->col -= k1;
+        CLIPCOL(0);
         break;
     case 'E':
         term->row += k1;
         term->col = 0;
+        CLIPROW(term->rows-1);
         break;
     case 'F':
         term->row -= k1;
         term->col = 0;
+        CLIPROW(0);
         break;
     case 'G': case '`':
         term->col = k1 - 1;
+        CLIPCOL(term->cols-1);
         break;
     case 'H': case 'f':
         if (n == 2) {
             term->row = MAX(params[0], 1) - 1;
             term->col = MAX(params[1], 1) - 1;
+        } else if (n == 1) {
+            term->row = MAX(params[0], 1) - 1;
+            term->col = 0;
         } else {
             term->row = term->col = 0;
         }
         if (term->mode & M_ORIGIN)
             term->row += term->top;
+        CLIPROW(term->rows-1);
+        CLIPCOL(term->cols-1);
         break;
     case 'J':
+        CLEARWRAP;
         ra = 0; rb = term->rows - 1;
         ca = 0; cb = term->cols - 1;
         if (k == 0) {
@@ -580,6 +607,7 @@ ctrlseq(Term *term, uint8_t byte)
             term->addr[rb][j] = BLANK;
         break;
     case 'K':
+        CLEARWRAP;
         ca = 0; cb = term->cols - 1;
         if (k == 0)
             ca = term->col;
@@ -589,6 +617,7 @@ ctrlseq(Term *term, uint8_t byte)
             term->addr[term->row][j] = BLANK;
         break;
     case 'L':
+        CLEARWRAP;
         if (term->row < term->top || term->row > term->bot)
             break;
         /* This is implemented naively:
@@ -602,6 +631,7 @@ ctrlseq(Term *term, uint8_t byte)
         term->top = i;
         break;
     case 'M':
+        CLEARWRAP;
         if (term->row < term->top || term->row > term->bot)
             break;
         /* This is implemented naively:
@@ -620,6 +650,7 @@ ctrlseq(Term *term, uint8_t byte)
         term->top = i;
         break;
     case 'P':
+        CLEARWRAP;
         cell = term->addr[term->row][term->cols-1];
         cell.code = EMPTY;
         for (j = term->col; j < term->cols-k1; j++)
@@ -628,6 +659,7 @@ ctrlseq(Term *term, uint8_t byte)
             term->addr[term->row][j] = cell;
         break;
     case 'X':
+        CLEARWRAP;
         for (j = 0; j < k1; j++)
             term->addr[term->row][term->col+j] = BLANK;
         break;
@@ -637,6 +669,7 @@ ctrlseq(Term *term, uint8_t byte)
         /* since there is no application listening, we can ignore this */
         break;
     case 'd':
+        CLEARWRAP;
         term->row = k1 - 1;
         break;
     case 'g':
