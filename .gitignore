@@ -5,3 +5,5 @@ a.out
 *.t
 *.d
 *log
+default_font.h
+mbf2c
