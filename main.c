@@ -45,20 +45,21 @@ get_pair(Term *term, int row, int col)
         inverse = term->row == row && term->col == col ? !inverse : inverse;
     cell = term->addr[row][col];
     inverse = cell.attr & A_INVERSE ? !inverse : inverse;
-    if (inverse) {
-        fore = cell.pair & 0xF;
-        back = cell.pair >> 4;
-    } else {
-        fore = cell.pair >> 4;
-        back = cell.pair & 0xF;
-    }
-    if (cell.attr & (A_DIM | A_UNDERLINE))
-        fore = 0x6;
-    else if (cell.attr & (A_ITALIC | A_CROSSED))
+    fore = cell.pair >> 4;
+    back = cell.pair & 0xF;
+    if (cell.attr & (A_ITALIC | A_CROSSED))
         fore = 0x2;
+    else if (cell.attr & A_UNDERLINE)
+        fore = 0x6;
+    else if (cell.attr & A_DIM)
+        fore = 0x8;
+    if (inverse) {
+        uint8_t t;
+        t = fore; fore = back; back = t;
+    }
     if (cell.attr & A_BOLD)
         fore |= 0x8;
-    if (cell.attr & A_BRIGHTBG)
+    if (cell.attr & A_BLINK)
         back |= 0x8;
     if ((cell.attr & A_INVISIBLE) != 0) fore = back;
     return (fore << 4) | (back & 0xF);
