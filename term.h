@@ -21,6 +21,7 @@
 #define M_MOUSEX10  0x0200
 #define M_CURSORVIS 0x0400
 #define M_MOUSEX11  0x0800
+#define M_ISOLAT1   0x1000
 
 #define EMPTY       0x0020
 #define BCE         1
@@ -39,7 +40,7 @@ typedef struct Cell {
     uint8_t pair;
 } Cell;
 
-typedef enum CharSet {CS_BMP, CS_VTG, CS_437} CharSet;
+typedef enum CharSet {CS_BMP, CS_ISO, CS_VTG, CS_437} CharSet;
 typedef enum State {S_ANY, S_ESC, S_CSI, S_OSC, S_OSCESC, S_STR, S_STRESC, S_UNI} State;
 
 typedef struct SaveCursor {

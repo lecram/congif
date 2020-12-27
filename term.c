@@ -305,6 +305,24 @@ escseq(Term *term, uint8_t byte)
     case '%':
         /* TODO: select charset */
         logfmt("NYI: ESC Sequence %% (character set selection)\n");
+        switch(second)
+        {
+        case '8': /* Linux switch to UTF8 */
+        case 'G': /* DOCS: Designate other coding system */
+            term->mode &= ~M_ISOLAT1;
+            if (term->cs_array[0] == CS_ISO)
+                term->cs_array[0] = CS_BMP;
+            if (term->cs_array[1] == CS_ISO)
+                term->cs_array[1] = CS_BMP;
+            break;
+        case '@': /* DOCS, Standard return */
+            term->mode |= M_ISOLAT1;
+            if (term->cs_array[0] == CS_BMP)
+                term->cs_array[0] = CS_ISO;
+            if (term->cs_array[1] == CS_BMP)
+                term->cs_array[1] = CS_ISO;
+            break;
+        }
         break;
     case '#':
         switch(second)
@@ -328,7 +346,7 @@ escseq(Term *term, uint8_t byte)
     case '(':
         switch (second) {
         case 'B':
-            term->cs_array[0] = CS_BMP;
+            term->cs_array[0] = (term->mode&M_ISOLAT1)?CS_ISO:CS_BMP;
             break;
         case '0':
             term->cs_array[0] = CS_VTG;
@@ -338,14 +356,14 @@ escseq(Term *term, uint8_t byte)
             break;
         case 'K':
             logfmt("UNS: user-defined mapping\n");
-            term->cs_array[0] = CS_BMP;
+            term->cs_array[0] = (term->mode&M_ISOLAT1)?CS_ISO:CS_BMP;
             break;
         }
         break;
     case ')':
         switch (second) {
         case 'B':
-            term->cs_array[1] = CS_BMP;
+            term->cs_array[1] = (term->mode&M_ISOLAT1)?CS_ISO:CS_BMP;
             break;
         case '0':
             term->cs_array[1] = CS_VTG;
@@ -355,7 +373,7 @@ escseq(Term *term, uint8_t byte)
             break;
         case 'K':
             logfmt("UNS: user-defined mapping\n");
-            term->cs_array[1] = CS_BMP;
+            term->cs_array[1] = (term->mode&M_ISOLAT1)?CS_ISO:CS_BMP;
             break;
         }
         break;
@@ -483,7 +501,7 @@ sgr(Term *term, int n, int *params)
             break;
         case 10:
             /* TODO: reset toggle meta flag */
-            term->cs_array[term->cs_index = 0] = CS_BMP;
+            term->cs_array[term->cs_index = 0] = (term->mode&M_ISOLAT1)?CS_ISO:CS_BMP;
             term->mode &= ~M_DISPCTRL;
             break;
         case 11:
@@ -834,6 +852,9 @@ parse(Term *term, uint8_t byte)
                         term->state = S_UNI;
                     } else
                         addchar(term, 0xFFFD);
+                    break;
+                case CS_ISO:
+                    addchar(term, byte);
                     break;
                 case CS_VTG:
                     addchar(term, cs_vtg[byte]);
