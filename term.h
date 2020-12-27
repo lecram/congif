@@ -80,3 +80,4 @@ typedef struct Term {
 void set_verbosity(int level);
 Term *new_term(int rows, int cols);
 void parse(Term *term, uint8_t byte);
+void set_default_palette(char * optarg);

@@ -75,6 +75,83 @@ load_misc(Term *term)
     term->cs_index = term->save_misc.cs_index;
 }
 
+void
+set_default_palette(char * pname)
+{
+    static struct {
+        char * name;
+        uint8_t * plt;
+    } pal[] = {
+        { "xterm", plt_xterm },
+        { "vga", plt_vga_ansi },
+        { "sol_ansi", plt_solarized_like_ansi },
+        { "solarized", plt_solarized },
+        { "putty", plt_putty },
+        { 0, 0}
+    };
+
+    if (pname[0] == '@') {
+        int i;
+        for(i=0; pal[i].name; i++) {
+            if (strcasecmp(pname+1, pal[i].name) == 0) {
+                def_plt = pal[i].plt;
+                return;
+            }
+        }
+        fprintf(stderr, "Known standard palette names are:\n");
+        for(i=0; pal[i].name; i++)
+            fprintf(stderr, "    @%s\n", pal[i].name);
+        exit(2);
+    } else {
+        FILE * fd;
+        char buf[BUFSIZ];
+        Term * term = 0;
+        uint8_t * plt = malloc(sizeof(term->plt));
+        memcpy(plt, def_plt, sizeof(term->plt));
+        def_plt = plt;
+
+        if ((fd = fopen(pname, "r")) == 0) {
+            perror(pname); exit(1);
+        }
+        while (fgets(buf, sizeof(buf), fd) != 0) {
+            char * s = buf, *e;
+            long cno = 0, colour = 0;
+
+            while (*s == ' ' || *s == '\t') s++;
+            if (*s == '#') continue;
+
+            if (strncasecmp(s, "color", 5) == 0) {
+                s += 5;
+            } else if (strncasecmp(s, "colour", 6) == 0) {
+                s += 6;
+            } else continue;
+
+            // Only lines that match /^ *colou?r[0-9]+/i
+            if (*s < '0' || *s > '9') continue;
+
+            cno = strtol(s, &e, 0);
+            if (s == e) goto bad_line;
+            if (cno < 0 || cno > 16) goto bad_line;
+
+            s = e;
+            while (*s == ' ' || *s == '\t' || *s == '#' || *s == '=') s++;
+            colour = strtol(s, &e, 16);
+            if (e-s != 6) goto bad_line;
+
+            plt[cno*3+0] = ((colour>>16) & 0xFF);
+            plt[cno*3+1] = ((colour>> 8) & 0xFF);
+            plt[cno*3+2] = ((colour    ) & 0xFF);
+            continue;
+bad_line:
+            fprintf(stderr, "Bad line in colour file: %s", buf);
+            exit(2);
+        }
+
+        fclose(fd);
+    }
+    return;
+}
+
 static void
 reset(Term *term)
 {
