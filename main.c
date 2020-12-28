@@ -119,7 +119,7 @@ convert_script(Term *term)
     int w, h;
     int i, c;
     float d;
-    uint16_t rd;
+    uint16_t rd, id = 0;
     float lastdone, done;
     char pb[options.barsize+1];
     GIF *gif;
@@ -178,11 +178,12 @@ convert_script(Term *term)
             }
         }
         d += (MIN(t, options.maxdelay) * 100.0 / options.divisor);
-        rd = (uint16_t) (d + 0.5);
+        rd = (uint16_t) MIN((int)(d + 0.5), 65535);
         if (i && rd >= MIN_DELAY) {
             render(term, font, gif, rd);
             d = 0;
         }
+        if (i == 0) { id = rd; rd = 0; d = 0; }
         while (n--) {
             read(fd, &ch, 1);
             parse(term, ch);
@@ -191,6 +192,7 @@ convert_script(Term *term)
             term->mode &= ~M_CURSORVIS;
         i++;
     }
+    rd += id;
     if (options.barsize) {
         while (lastdone < options.barsize-2) {
             putchar('#');
@@ -198,7 +200,7 @@ convert_script(Term *term)
         }
         putchar('\n');
     }
-    render(term, font, gif, MAX(rd, MIN_DELAY));
+    render(term, font, gif, MAX(rd, 1));
     close_gif(gif);
     return 0;
 no_gif:
