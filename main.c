@@ -104,6 +104,14 @@ render(Term *term, Font *font, GIF *gif, uint16_t delay)
             draw_char(font, gif, code, pair, i, j);
         }
     }
+
+    if (term->plt_local)
+        gif->plt = term->plt;
+    else
+        gif->plt = 0;
+    gif->plt_dirty |= term->plt_dirty;
+    term->plt_dirty = 0;
+
     add_frame(gif, delay);
 }
 
