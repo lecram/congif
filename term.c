@@ -589,6 +589,44 @@ modeswitch(Term *term, int private, int number, int value)
     }
 }
 
+static int
+fake_colour_16m(int red, int green, int blue)
+{
+    int av = (red+green+blue)/3;
+    int palno = 1*(red>=av) + 2*(green>=av) + 4*(blue>=av);
+    if (red==green && green==blue) {
+        if (av > 212) palno = 15-8;
+        else if (av > 127) palno = 7-8;
+        else if (av > 42) palno = 8;
+        else palno = 0;
+    }
+    return palno + 8*(av>127);
+}
+
+static int
+fake_colour_256(int colnum){
+    int nr, ng, nb;
+    if (colnum < 16) {
+        nr = (colnum&1) ? 170:0;
+        ng = (colnum&2) ? 170:0;
+        nb = (colnum&4) ? 170:0;
+        if (colnum&8) { nr += 85; ng += 85; nb += 85; }
+        if (colnum == 3) ng = 85;
+    } else if (colnum < 232) {
+        int i = colnum - 16;
+        nr = i / 36; ng = (i / 6) % 6; nb = i % 6;
+        nr = nr ? nr * 40 + 55 : 0;
+        ng = ng ? ng * 40 + 55 : 0;
+        nb = nb ? nb * 40 + 55 : 0;
+    } else if (colnum < 256) {
+        int i = colnum - 232;
+        nr = ng = nb = i * 10 + 8;
+    } else
+        nr=ng=nb = 127;
+
+    return fake_colour_16m(nr, ng, nb);
+}
+
 static void
 sgr(Term *term, int n, int *params)
 {
@@ -667,13 +705,14 @@ sgr(Term *term, int n, int *params)
             i++ ;
             if (i>n) break;
             if (params[i] == 5) {
-                i++; /* 256 colours */
-                term->pair = (DEF_FORE << 4) | (term->pair & 0x0F);
+                /* 256 colours */
+                term->pair = (fake_colour_256(params[i+1]) << 4) | (term->pair & 0x0F);
+                i++;
                 break;
             } else if (params[i] == 2) {
-                i+=3;
                 /* 16M colours, note I'm using common form not strict ITU T.416 */
-                term->pair = (DEF_FORE << 4) | (term->pair & 0x0F);
+                term->pair = (fake_colour_16m(params[i+1],params[i+2],params[i+3]) << 4) | (term->pair & 0x0F);
+                i+=3;
                 break;
             }
             /* Could be CMYK; probably broken */
@@ -691,13 +730,14 @@ sgr(Term *term, int n, int *params)
             i++ ;
             if (i>n) break;
             if (params[i] == 5) {
-                i++; /* 256 colours */
-                term->pair = (term->pair & 0xF0) | DEF_BACK;
+                /* 256 colours */
+                term->pair = (term->pair & 0xF0) | fake_colour_256(params[i+1]);
+                i++;
                 break;
             } else if (params[i] == 2) {
-                i+=3;
                 /* 16M colours, note I'm using common form not strict ITU T.416 */
-                term->pair = (term->pair & 0xF0) | DEF_BACK;
+                term->pair = (term->pair & 0xF0) | fake_colour_16m(params[i+1],params[i+2],params[i+3]);
+                i+=3;
                 break;
             }
             /* Could be CMYK; probably broken */
