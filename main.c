@@ -104,6 +104,14 @@ render(Term *term, Font *font, GIF *gif, uint16_t delay)
             draw_char(font, gif, code, pair, i, j);
         }
     }
+
+    if (term->plt_local)
+        gif->plt = term->plt;
+    else
+        gif->plt = 0;
+    gif->plt_dirty |= term->plt_dirty;
+    term->plt_dirty = 0;
+
     add_frame(gif, delay);
 }
 
@@ -227,6 +235,7 @@ help(char *name)
         "  -h lines     Terminal height\n"
         "  -w columns   Terminal width\n"
         "  -c on|off    Show/hide cursor\n"
+        "  -p palette   Define color palette, '@help' for std else file.\n"
         "  -q           Quiet mode (don't show progress bar)\n"
         "  -v           Verbose mode (show parser logs)\n"
     , name);
@@ -262,7 +271,7 @@ main(int argc, char *argv[])
         options.width = size.ws_col;
         has_winsize = 1;
     }
-    while ((opt = getopt(argc, argv, "o:m:d:l:f:h:w:c:qv")) != -1) {
+    while ((opt = getopt(argc, argv, "o:m:d:l:f:h:w:c:p:qv")) != -1) {
         switch (opt) {
         case 'o':
             options.output = optarg;
@@ -298,6 +307,9 @@ main(int argc, char *argv[])
             break;
         case 'v':
             set_verbosity(1);
+            break;
+        case 'p':
+            set_default_palette(optarg);
             break;
         default:
             help(argv[0]);

@@ -133,6 +133,12 @@ put_image(GIF *gif, uint16_t w, uint16_t h, uint16_t x, uint16_t y)
 {
     int nkeys, key_size, i, j;
     Node *node, *child, *root;
+    uint8_t id_packed = 0x00;
+
+    if (gif->plt) {
+        id_packed &= ~0x7;
+        id_packed |= 0x83; /* Local clut, 4 bits. */
+    }
 
     root = malloc(sizeof(*root));
     write(gif->fd, ",", 1);
@@ -140,7 +146,11 @@ put_image(GIF *gif, uint16_t w, uint16_t h, uint16_t x, uint16_t y)
     write_num(gif->fd, y);
     write_num(gif->fd, w);
     write_num(gif->fd, h);
-    write(gif->fd, (uint8_t []) {0x00, 0x04}, 2);
+    write(gif->fd, &id_packed, 1);
+    if (id_packed & 0x80)
+        write(gif->fd, gif->plt, 3<<((id_packed & 0x7)+1));
+
+    write(gif->fd, "\x04", 1); /* Min code size */
     root = node = new_trie(&nkeys);
     key_size = 5;
     put_key(gif, 0x10, key_size); /* clear code */
@@ -216,6 +226,10 @@ add_frame(GIF *gif, uint16_t d)
 
     if (d)
         set_delay(gif, d);
+    if (gif->plt_dirty) {
+        w = gif->w; h = gif->h; x = y = 0;
+        gif->plt_dirty = 0;
+    } else
     if (!get_bbox(gif, &w, &h, &x, &y)) {
         /* image's not changed; save one pixel just to add delay */
         w = h = 1;

@@ -4,8 +4,9 @@ typedef struct GIF {
     uint16_t w, h;
     int fd;
     int offset;
-    uint8_t *cur, *old;
+    uint8_t *cur, *old, *plt;
     uint32_t partial;
+    uint8_t plt_dirty;
     uint8_t buffer[0xFF];
 } GIF;
 
