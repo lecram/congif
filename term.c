@@ -645,6 +645,9 @@ sgr(Term *term, int n, int *params)
         case 2:
             term->attr |= A_DIM;
             break;
+        case 3:
+            term->attr |= A_ITALIC;
+            break;
         case 4:
             term->attr |= A_UNDERLINE;
             break;
@@ -673,10 +676,16 @@ sgr(Term *term, int n, int *params)
             term->mode |= M_DISPCTRL;
             break;
         case 21:
-            term->attr &= ~A_BOLD;
+#ifndef OLDLINUX
+            term->attr |= A_UNDERLINE; /* Linux say should be: DOUBLE_ULINE */
             break;
+#endif
         case 22:
             term->attr &= ~A_DIM;
+            term->attr &= ~A_BOLD;
+            break;
+        case 23:
+            term->attr &= ~A_ITALIC;
             break;
         case 24:
             term->attr &= ~A_UNDERLINE;
@@ -748,12 +757,10 @@ sgr(Term *term, int n, int *params)
             term->pair = (term->pair & 0xF0) | DEF_BACK;
             break;
         case 90: case 91: case 92: case 93: case 94: case 95: case 96: case 97:
-            term->pair = ((number - 90) << 4) | (term->pair & 0x0F);
-            term->attr |= A_BOLD;
+            term->pair = ((number - 90 + 8) << 4) | (term->pair & 0x0F);
             break;
         case 100: case 101: case 102: case 103: case 104: case 105: case 106: case 107:
-            term->pair = (term->pair & 0xF0) | (number - 100);
-            term->attr |= A_BRIGHTBG;
+            term->pair = (term->pair & 0xF0) | (number - 100 + 8);
             break;
         default:
             logfmt("UNS: SGR %d\n", number);
